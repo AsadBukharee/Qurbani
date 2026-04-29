@@ -3,6 +3,7 @@ import React, { useRef } from "react";
 import {
   Animated,
   Image,
+  ImageSourcePropType,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,7 +17,7 @@ interface Category {
   id: string;
   label: string;
   labelAr: string;
-  image: ReturnType<typeof require>;
+  image: ImageSourcePropType;
   color: string;
 }
 

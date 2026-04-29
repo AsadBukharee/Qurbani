@@ -134,6 +134,13 @@ interface AppContextType {
       scheduledAt?: string | null;
     }
   ) => Promise<{ ok: true; listing: AnimalListing } | { ok: false; error: string }>;
+  // My Ads
+  myAds: ApiMyAd[];
+  myAdsLoading: boolean;
+  fetchMyAds: (status?: "draft" | "published" | "inactive" | "scheduled") => Promise<void>;
+  publishAd: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  toggleAdStatus: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  deleteAd: (id: string) => Promise<{ ok: boolean; error?: string }>;
   // Coupons
   addCoupon: (
     coupon: Omit<CouponCode, "id" | "createdAt">
@@ -233,6 +240,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [listings, setListings] = useState<AnimalListing[]>(SAMPLE_LISTINGS);
   const [listingsLoading, setListingsLoading] = useState(false);
+  const [myAds, setMyAds] = useState<ApiMyAd[]>([]);
+  const [myAdsLoading, setMyAdsLoading] = useState(false);
   const [coupons, setCoupons] = useState<CouponCode[]>([]);
   const [tasbihCount, setTasbihCountState] = useState(0);
   const [currentPhrase, setCurrentPhraseState] = useState(0);
@@ -562,6 +571,95 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [user]
   );
 
+  // ---------------- My Ads ----------------
+  const fetchMyAds = useCallback<AppContextType["fetchMyAds"]>(
+    async (status) => {
+      if (!isApiEnabled() || !user) {
+        setMyAds([]);
+        return;
+      }
+      setMyAdsLoading(true);
+      try {
+        const data = await animalsApi.myAds(status ? { status } : undefined);
+        setMyAds(data);
+      } catch (err) {
+        console.warn("[animals.myAds] failed:", apiErrorMessage(err));
+      } finally {
+        setMyAdsLoading(false);
+      }
+    },
+    [user]
+  );
+
+  const publishAd = useCallback<AppContextType["publishAd"]>(
+    async (id) => {
+      if (!isApiEnabled() || !user) {
+        return { ok: false, error: "You must be signed in." };
+      }
+      try {
+        const updated = await animalsApi.publish(id);
+        setMyAds((prev) =>
+          prev.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  status: updated.status ?? "published",
+                  published_at: updated.published_at ?? a.published_at,
+                  scheduled_at: updated.scheduled_at ?? a.scheduled_at,
+                }
+              : a
+          )
+        );
+        const mapped = mapAnimal(updated);
+        setListings((prev) => {
+          const exists = prev.some((a) => a.id === id);
+          return exists ? prev.map((a) => (a.id === id ? mapped : a)) : [mapped, ...prev];
+        });
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: apiErrorMessage(err, "Could not publish ad.") };
+      }
+    },
+    [user]
+  );
+
+  const toggleAdStatus = useCallback<AppContextType["toggleAdStatus"]>(
+    async (id) => {
+      if (!isApiEnabled() || !user) {
+        return { ok: false, error: "You must be signed in." };
+      }
+      try {
+        const updated = await animalsApi.toggleStatus(id);
+        setMyAds((prev) =>
+          prev.map((a) =>
+            a.id === id ? { ...a, status: updated.status ?? a.status } : a
+          )
+        );
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: apiErrorMessage(err, "Could not update status.") };
+      }
+    },
+    [user]
+  );
+
+  const deleteAd = useCallback<AppContextType["deleteAd"]>(
+    async (id) => {
+      if (!isApiEnabled() || !user) {
+        return { ok: false, error: "You must be signed in." };
+      }
+      try {
+        await animalsApi.delete(id);
+        setMyAds((prev) => prev.filter((a) => a.id !== id));
+        setListings((prev) => prev.filter((a) => a.id !== id));
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: apiErrorMessage(err, "Could not delete ad.") };
+      }
+    },
+    [user]
+  );
+
   // ---------------- Coupons ----------------
   const addCoupon = useCallback<AppContextType["addCoupon"]>(
     async (coupon) => {
@@ -688,6 +786,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleFavorite,
         isFavorite,
         addListing,
+        myAds,
+        myAdsLoading,
+        fetchMyAds,
+        publishAd,
+        toggleAdStatus,
+        deleteAd,
         addCoupon,
         updateCoupon,
         deleteCoupon,
