@@ -71,7 +71,7 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
       color: colors.gold,
       onPress: () => {
         onClose();
-        // Navigate to notifications - can be extended
+        router.push("/notifications");
       },
     },
     {

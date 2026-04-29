@@ -126,6 +126,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <View style={styles.headerActions}>
               <TouchableOpacity
+                onPress={() => router.push("/notifications")}
                 style={[styles.headerIconBtn, { backgroundColor: colors.navyMid, borderColor: colors.border }]}
               >
                 <Feather name="bell" size={18} color={colors.teal} />
