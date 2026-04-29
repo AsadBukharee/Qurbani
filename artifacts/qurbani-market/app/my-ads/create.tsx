@@ -1,12 +1,10 @@
 import { Feather } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useState, useEffect } from "react";
 import {
   Alert,
   ActivityIndicator,
-  Dimensions,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,16 +14,14 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Image } from "expo-image";
 import { StarryBackground } from "@/components/StarryBackground";
 import { StepperProgress } from "@/components/StepperProgress";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
+import { MediaUploader, type MediaItem } from "@/components/MediaUploader";
 import { useApp } from "@/contexts/AppContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
-import { animals as animalsApi, apiErrorMessage } from "@/lib/api";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import { animals as animalsApi } from "@/lib/api";
 
 export default function CreateAdScreen() {
   const colors = useColors();
@@ -38,10 +34,11 @@ export default function CreateAdScreen() {
   const [loading, setLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Form State - Step 1
-  const [images, setImages] = useState<string[]>([]);
+  // Form State - Step 1 (Media — images + videos, max 5, see MediaUploader)
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [coverIndex, setCoverIndex] = useState(0);
-  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const uploadingMedia = media.some((m) => m.status === "uploading");
+  const doneMedia = media.filter((m) => m.status === "done");
 
   // Form State - Step 2 (Location) — pre-filled from saved location (AsyncStorage)
   const [location, setLocation] = useState({
@@ -91,9 +88,21 @@ export default function CreateAdScreen() {
   const steps = ["Media", "Location", "Details", "Publish"];
 
   const handleNext = () => {
-    if (step === 1 && images.length === 0) {
-      Alert.alert("Media Required", "Please upload at least one image of your animal.");
-      return;
+    if (step === 1) {
+      if (doneMedia.length === 0) {
+        Alert.alert(
+          "Media Required",
+          "Please upload at least one photo or video of your animal."
+        );
+        return;
+      }
+      if (uploadingMedia) {
+        Alert.alert(
+          "Uploads in Progress",
+          "Please wait for all media to finish uploading before continuing."
+        );
+        return;
+      }
     }
     if (step === 2 && (!location.city || !location.province)) {
       Alert.alert("Location Required", "Please provide at least your province and city.");
@@ -120,6 +129,13 @@ export default function CreateAdScreen() {
         .match(/#(\w+)/g)
         ?.map((k) => k.replace("#", "").toLowerCase()) || [];
 
+      const uploadedUrls = doneMedia.map((m) => m.uri);
+      // Cover index is into the user-facing list (which only shows done items).
+      const safeCoverIndex = Math.max(
+        0,
+        Math.min(coverIndex, uploadedUrls.length - 1)
+      );
+
       const payload = {
         title: details.title,
         category: details.category,
@@ -134,8 +150,8 @@ export default function CreateAdScreen() {
         latitude: location.lat,
         longitude: location.lon,
         description: details.description,
-        images,
-        coverImageIndex: coverIndex,
+        images: uploadedUrls,
+        coverImageIndex: safeCoverIndex,
         keywords,
         status: publishMode,
         scheduledAt: scheduledDate?.toISOString() || null,
@@ -217,47 +233,9 @@ export default function CreateAdScreen() {
     }
   };
 
-  const pickImage = async () => {
-    if (images.length >= 5) {
-      Alert.alert("Limit Reached", "You can upload a maximum of 5 images.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      uploadMedia(result.assets[0].uri);
-    }
-  };
-
-  const uploadMedia = async (uri: string) => {
-    setUploadingMedia(true);
-    try {
-      const filename = uri.split("/").pop() || "upload.jpg";
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image`;
-      
-      const res = await animalsApi.upload({ uri, name: filename, type });
-      setImages((prev) => [...prev, res.url]);
-    } catch (err) {
-      Alert.alert("Upload Failed", apiErrorMessage(err));
-    } finally {
-      setUploadingMedia(false);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    if (coverIndex === index) setCoverIndex(0);
-    else if (coverIndex > index) setCoverIndex(coverIndex - 1);
-  };
-
-  const setAsCover = (index: number) => {
-    setCoverIndex(index);
+  const handleUpload = async (file: { uri: string; name: string; type: string }) => {
+    const res = await animalsApi.upload(file);
+    return { url: res.url, publicId: res.public_id };
   };
 
   return (
@@ -283,52 +261,18 @@ export default function CreateAdScreen() {
           <View style={styles.stepContainer}>
             <Text style={[styles.stepTitle, { color: colors.foreground }]}>Upload Media</Text>
             <Text style={[styles.stepSub, { color: colors.mutedForeground }]}>
-              Add up to 5 photos of your animal. First image is usually the cover.
+              Add up to 5 photos or videos of your animal. Tap the three dots
+              on a tile to mark it as the cover or remove it.
             </Text>
 
-            <View style={styles.mediaGrid}>
-              {images.map((url, idx) => (
-                <View key={idx} style={[styles.mediaWrapper, { borderColor: coverIndex === idx ? colors.teal : colors.border }]}>
-                  <Image source={{ uri: url }} style={styles.mediaImage} contentFit="cover" />
-                  {coverIndex === idx && (
-                    <View style={[styles.coverBadge, { backgroundColor: colors.teal }]}>
-                      <Text style={[styles.coverBadgeText, { color: colors.navy }]}>COVER</Text>
-                    </View>
-                  )}
-                  <TouchableOpacity 
-                    onPress={() => removeImage(idx)}
-                    style={[styles.removeBtn, { backgroundColor: "rgba(0,0,0,0.5)" }]}
-                  >
-                    <Feather name="x" size={14} color="#fff" />
-                  </TouchableOpacity>
-                  {coverIndex !== idx && (
-                    <TouchableOpacity 
-                      onPress={() => setAsCover(idx)}
-                      style={[styles.makeCoverBtn, { backgroundColor: "rgba(0,0,0,0.5)" }]}
-                    >
-                      <Text style={styles.makeCoverText}>Set Cover</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              ))}
-              
-              {images.length < 5 && (
-                <TouchableOpacity 
-                  onPress={pickImage}
-                  disabled={uploadingMedia}
-                  style={[styles.addMediaBtn, { backgroundColor: colors.navyLight, borderColor: colors.border }]}
-                >
-                  {uploadingMedia ? (
-                    <ActivityIndicator color={colors.teal} />
-                  ) : (
-                    <>
-                      <Feather name="camera" size={24} color={colors.teal} />
-                      <Text style={[styles.addMediaText, { color: colors.mutedForeground }]}>Add Photo</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
+            <MediaUploader
+              value={media}
+              onChange={setMedia}
+              coverIndex={coverIndex}
+              onCoverChange={setCoverIndex}
+              uploadFn={handleUpload}
+              max={5}
+            />
           </View>
         )}
 
@@ -548,32 +492,6 @@ const styles = StyleSheet.create({
   stepContainer: { gap: 16 },
   stepTitle: { fontSize: 22, fontFamily: "Inter_700Bold" },
   stepSub: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
-  mediaGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12 },
-  mediaWrapper: {
-    width: (SCREEN_WIDTH - 52) / 2,
-    height: (SCREEN_WIDTH - 52) / 2,
-    borderRadius: 12,
-    borderWidth: 2,
-    overflow: "hidden",
-    position: "relative",
-  },
-  mediaImage: { width: "100%", height: "100%" },
-  removeBtn: { position: "absolute", top: 8, right: 8, width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  coverBadge: { position: "absolute", top: 8, left: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  coverBadgeText: { fontSize: 9, fontFamily: "Inter_700Bold" },
-  makeCoverBtn: { position: "absolute", bottom: 8, left: 8, right: 8, paddingVertical: 4, borderRadius: 6, alignItems: "center" },
-  makeCoverText: { color: "#fff", fontSize: 10, fontFamily: "Inter_600SemiBold" },
-  addMediaBtn: {
-    width: (SCREEN_WIDTH - 52) / 2,
-    height: (SCREEN_WIDTH - 52) / 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  addMediaText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   inputGroup: { gap: 6, marginBottom: 12 },
   label: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   input: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },

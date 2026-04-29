@@ -38,3 +38,6 @@ externalPort = 3000
 [[ports]]
 localPort = 23804
 externalPort = 3002
+
+[nix]
+packages = ["nano"]
