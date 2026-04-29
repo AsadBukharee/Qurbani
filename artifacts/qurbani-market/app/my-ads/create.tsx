@@ -198,18 +198,47 @@ export default function CreateAdScreen() {
       }
 
       const loc = await Location.getCurrentPositionAsync({});
-      const [geocode] = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
+      const lat = loc.coords.latitude;
+      const lon = loc.coords.longitude;
+
+      let city = "";
+      let province = "";
+      let address = "";
+
+      // Native: use expo-location's reverse geocoder.
+      // Web: reverseGeocodeAsync is unsupported, so fall back to OpenStreetMap Nominatim.
+      if (Platform.OS === "web") {
+        try {
+          const resp = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+            { headers: { Accept: "application/json" } }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            const a = data.address || {};
+            city = a.city || a.town || a.village || a.suburb || a.county || "";
+            province = a.state || a.region || "";
+            address =
+              data.display_name ||
+              [a.road, a.neighbourhood, a.suburb].filter(Boolean).join(", ");
+          }
+        } catch {
+          // network error — leave fields blank, user can type manually
+        }
+      } else {
+        const [geocode] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+        city = geocode?.city || geocode?.subregion || "";
+        province = geocode?.region || "";
+        address = geocode?.street || geocode?.name || "";
+      }
 
       const next = {
         ...location,
-        lat: loc.coords.latitude,
-        lon: loc.coords.longitude,
-        city: geocode?.city || geocode?.subregion || "",
-        province: geocode?.region || "",
-        address: geocode?.street || geocode?.name || "",
+        lat,
+        lon,
+        city,
+        province,
+        address,
       };
       setLocation(next);
       // Also persist to user-wide saved location so the home pill + future ads
