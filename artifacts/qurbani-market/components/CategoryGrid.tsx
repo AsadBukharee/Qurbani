@@ -27,7 +27,7 @@ const CATEGORIES: Category[] = [
     label: "Bakra",
     labelAr: "بکرا",
     image: require("../assets/images/cat_goat.png"),
-    color: "#00A896",
+    color: "#926B1F",
   },
   {
     id: "cow",

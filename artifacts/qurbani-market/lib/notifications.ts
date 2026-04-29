@@ -41,7 +41,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
       name: "Qurbani Notifications",
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#00C2A8",
+      lightColor: "#926B1F",
     });
   }
 

@@ -15,7 +15,8 @@ import axios, {
 } from "axios";
 
 export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "") || "";
+  process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "") ||
+  "https://qbni.fosterhartley.uk/api";
 
 const ACCESS_KEY = "auth_access";
 const REFRESH_KEY = "auth_refresh";
