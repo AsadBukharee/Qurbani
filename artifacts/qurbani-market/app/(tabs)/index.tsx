@@ -479,9 +479,9 @@ export default function HomeScreen() {
         style={[
           styles.fab,
           {
-            backgroundColor: colors.teal,
+            backgroundColor: "#876009",
             bottom: bottomPad + 80,
-            shadowColor: colors.teal,
+            shadowColor: "#876009",
           },
         ]}
       >
