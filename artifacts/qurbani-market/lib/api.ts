@@ -366,6 +366,7 @@ export const animals = {
     const { data } = await api.post("/animals/upload/", formData, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        "Content-Type": "multipart/form-data",
       },
       timeout: 60000,
     });
