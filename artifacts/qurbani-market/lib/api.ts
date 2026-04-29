@@ -1,7 +1,7 @@
 /**
  * API client for the Qurbani Market Django REST backend.
  *
- * Set EXPO_PUBLIC_API_URL in `.env` (it should already include `/api`).
+ * The backend URL is hardcoded below — no .env needed.
  * Tokens returned by the backend are Fernet-encrypted blobs — we treat
  * them as opaque strings and pass them through as Bearer tokens.
  *
@@ -14,9 +14,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 
-export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "") ||
-  "https://qbni.fosterhartley.uk/api";
+export const API_URL = "https://qbni.fosterhartley.uk/api";
 
 const ACCESS_KEY = "auth_access";
 const REFRESH_KEY = "auth_refresh";
@@ -46,7 +44,7 @@ export const isApiEnabled = () => !!API_URL;
 // ---------------------------------------------------------------------------
 
 export const api: AxiosInstance = axios.create({
-  baseURL: API_URL || "http://localhost:8000/api",
+  baseURL: API_URL,
   timeout: 20000,
   headers: { "Content-Type": "application/json" },
 });
@@ -68,7 +66,7 @@ async function refreshAccessToken(): Promise<string | null> {
       const refresh = await tokenStore.getRefresh();
       if (!refresh) return null;
       const resp = await axios.post(
-        `${API_URL || api.defaults.baseURL}/auth/refresh/`,
+        `${API_URL}/auth/refresh/`,
         { refresh },
         { timeout: 15000 },
       );
