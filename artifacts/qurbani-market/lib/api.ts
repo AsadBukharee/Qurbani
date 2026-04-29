@@ -69,7 +69,7 @@ async function refreshAccessToken(): Promise<string | null> {
       const resp = await axios.post(
         `${API_URL || api.defaults.baseURL}/auth/refresh/`,
         { refresh },
-        { timeout: 15000 }
+        { timeout: 15000 },
       );
       const access = resp.data.access as string;
       await AsyncStorage.setItem(ACCESS_KEY, access);
@@ -104,11 +104,14 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(err);
-  }
+  },
 );
 
 // Helper: pull a human-readable error message out of an axios error
-export function apiErrorMessage(err: unknown, fallback = "Request failed"): string {
+export function apiErrorMessage(
+  err: unknown,
+  fallback = "Request failed",
+): string {
   const e = err as AxiosError<any>;
   const data = e?.response?.data;
   if (typeof data === "string") return data;
@@ -307,27 +310,30 @@ export const animals = {
     const { data } = await api.post("/animals/", payload);
     return data as ApiAnimal;
   },
-  async update(id: string, payload: Partial<{
-    title: string;
-    category: string;
-    animal_property: "khasi" | "andal";
-    price: number;
-    weight: number | string;
-    age: string;
-    breed: string;
-    city: string;
-    province: string;
-    district: string;
-    street_address: string;
-    latitude: number | null;
-    longitude: number | null;
-    description: string;
-    images: string[];
-    cover_image_index: number;
-    keywords: string[];
-    status: string;
-    scheduled_at: string | null;
-  }>) {
+  async update(
+    id: string,
+    payload: Partial<{
+      title: string;
+      category: string;
+      animal_property: "khasi" | "andal";
+      price: number;
+      weight: number | string;
+      age: string;
+      breed: string;
+      city: string;
+      province: string;
+      district: string;
+      street_address: string;
+      latitude: number | null;
+      longitude: number | null;
+      description: string;
+      images: string[];
+      cover_image_index: number;
+      keywords: string[];
+      status: string;
+      scheduled_at: string | null;
+    }>,
+  ) {
     const { data } = await api.patch(`/animals/${id}/`, payload);
     return data as ApiAnimal;
   },
@@ -358,7 +364,6 @@ export const animals = {
     const token = await tokenStore.getAccess();
     const { data } = await api.post("/animals/upload/", formData, {
       headers: {
-        "Content-Type": "multipart/form-data",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       timeout: 60000,
@@ -417,15 +422,13 @@ export const favorites = {
     return unwrap<{ id: string; animal: string | ApiAnimal }>(data);
   },
   toggle: (animalId: string) =>
-    api
-      .post("/favorites/toggle/", { animal: animalId })
-      .then(
-        (r) =>
-          r.data as {
-            favorited: boolean;
-            favorite: { id: string; animal: string } | null;
-          }
-      ),
+    api.post("/favorites/toggle/", { animal: animalId }).then(
+      (r) =>
+        r.data as {
+          favorited: boolean;
+          favorite: { id: string; animal: string } | null;
+        },
+    ),
 };
 
 export const chat = {
@@ -553,7 +556,7 @@ export const karwan = {
       pickup_address?: string;
       contact_phone?: string;
       notes?: string;
-    }
+    },
   ) =>
     api
       .post(`/karwan/${karwanId}/book/`, payload)
