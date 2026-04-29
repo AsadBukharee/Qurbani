@@ -1,10 +1,9 @@
 /**
- * VideoSplash — cinematic splash screen.
+ * VideoSplash — cinematic splash screen that plays
+ * `assets/videos/splash.mp4` and fades out when the video ends.
  *
- * expo-video requires a **development build** (custom native module).
- * In Expo Go the native VideoPlayer constructor signature may differ,
- * so we fall back to a simple animated brand splash if the video player
- * fails to initialize.
+ * Falls back to a branded animated splash if expo-video isn't available
+ * (e.g. older Expo Go without the native module).
  */
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -20,39 +19,108 @@ interface VideoSplashProps {
   onFinish: () => void;
 }
 
-/**
- * Attempts to render the video splash. If expo-video is unavailable or
- * throws (common in Expo Go), we render a branded animated fallback.
- */
+// Try to load expo-video at module scope. If it isn't installed or
+// throws (older Expo Go), `Video` stays null and we render the
+// animated brand splash instead.
+let ExpoVideo: typeof import("expo-video") | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  ExpoVideo = require("expo-video");
+} catch {
+  ExpoVideo = null;
+}
+
+const SPLASH_VIDEO = require("../assets/videos/splash.mp4");
+
+// Hard cap on how long we let the splash linger, even if the video
+// never reports completion. Keeps users from getting stuck.
+const MAX_DURATION_MS = 6000;
+
 export function VideoSplash({ onFinish }: VideoSplashProps) {
-  const [useVideo, setUseVideo] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
-  // Try to load expo-video dynamically so it doesn't crash at import time
+  // If expo-video isn't available, or the player errors out, show the
+  // animated fallback (which calls onFinish itself).
+  if (!ExpoVideo || hasError) {
+    return <FallbackSplash onFinish={onFinish} />;
+  }
+
+  return (
+    <VideoPlayerSplash
+      onFinish={onFinish}
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
+function VideoPlayerSplash({
+  onFinish,
+  onError,
+}: {
+  onFinish: () => void;
+  onError: () => void;
+}) {
+  // SAFETY: ExpoVideo is non-null here per parent guard.
+  const { useVideoPlayer, VideoView } = ExpoVideo!;
+
+  const fadeOut = useRef(new Animated.Value(1)).current;
+  const finishedRef = useRef(false);
+
+  const finishOnce = React.useCallback(() => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    Animated.timing(fadeOut, {
+      toValue: 0,
+      duration: 350,
+      useNativeDriver: true,
+    }).start(() => onFinish());
+  }, [fadeOut, onFinish]);
+
+  const player = useVideoPlayer(SPLASH_VIDEO, (p) => {
+    try {
+      p.muted = true;
+      p.loop = false;
+      p.play();
+    } catch (err) {
+      console.warn("[VideoSplash] play failed", err);
+      onError();
+    }
+  });
+
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        // Dynamic import — won't crash the module graph if expo-video is missing
-        const mod: any = await import("expo-video");
-        if (mounted && typeof mod?.useVideoPlayer === "function" && mod?.VideoView) {
-          setUseVideo(true);
-        }
-      } catch {
-        // expo-video not available — stay on fallback
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    if (!player) return;
+    // Listen for playback end. expo-video exposes a 'playToEnd' event.
+    let sub: { remove: () => void } | undefined;
+    try {
+      sub = player.addListener?.("playToEnd", () => finishOnce());
+    } catch {
+      // ignore — safety timeout below will handle it
+    }
 
-  // Always render the fallback — it auto-finishes after the timeout
-  return <FallbackSplash onFinish={onFinish} />;
+    const timer = setTimeout(finishOnce, MAX_DURATION_MS);
+
+    return () => {
+      clearTimeout(timer);
+      sub?.remove?.();
+    };
+  }, [player, finishOnce]);
+
+  return (
+    <Animated.View style={[styles.container, { opacity: fadeOut }]}>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+        allowsFullscreen={false}
+        allowsPictureInPicture={false}
+      />
+    </Animated.View>
+  );
 }
 
 /**
- * Elegant branded splash fallback — animated logo + tagline that fades out
- * after ~2.5s. Works everywhere, no native dependencies.
+ * Branded animated fallback — used when expo-video can't load.
  */
 function FallbackSplash({ onFinish }: { onFinish: () => void }) {
   const fadeOut = useRef(new Animated.Value(1)).current;
@@ -60,7 +128,6 @@ function FallbackSplash({ onFinish }: { onFinish: () => void }) {
   const textFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Animate in
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
@@ -76,7 +143,6 @@ function FallbackSplash({ onFinish }: { onFinish: () => void }) {
       }),
     ]).start();
 
-    // Then fade out & call onFinish
     const timer = setTimeout(() => {
       Animated.timing(fadeOut, {
         toValue: 0,
@@ -86,7 +152,7 @@ function FallbackSplash({ onFinish }: { onFinish: () => void }) {
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, [onFinish]);
+  }, [onFinish, fadeOut, scale, textFade]);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeOut }]}>
