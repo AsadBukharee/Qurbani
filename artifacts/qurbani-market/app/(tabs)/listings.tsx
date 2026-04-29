@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,7 +13,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AnimalCard } from "@/components/AnimalCard";
-import { FilterModal } from "@/components/FilterModal";
+import {
+  DEFAULT_FILTERS,
+  FilterModal,
+  type AdvancedFilters,
+  type SortKey,
+} from "@/components/FilterModal";
 import { StarryBackground } from "@/components/StarryBackground";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -32,31 +38,38 @@ const PROPERTY_CHIPS = [
   { id: "andal", label: "Andal", labelAr: "انڈال" },
 ];
 
-const SORT_OPTIONS = [
+const QUICK_SORT: { id: SortKey; label: string }[] = [
   { id: "newest", label: "Newest" },
-  { id: "price_low", label: "Price: Low" },
-  { id: "price_high", label: "Price: High" },
+  { id: "price_low", label: "Price ↑" },
+  { id: "price_high", label: "Price ↓" },
 ];
+
+// Parse a leading number from age strings like "8 months", "2 years",
+// "2.5y", "1.5 years". Returns the value normalised to months.
+function parseAgeMonths(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const match = raw.toString().toLowerCase().match(/([0-9]+(?:\.[0-9]+)?)/);
+  if (!match) return null;
+  const num = parseFloat(match[1]);
+  if (Number.isNaN(num)) return null;
+  // If "year" appears, assume years; otherwise months.
+  return /year|yr|سال/.test(raw.toString().toLowerCase()) ? num * 12 : num;
+}
 
 export default function ListingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { listings } = useApp();
+
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeProperties, setActiveProperties] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState("newest");
-  
+
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState({
-    province: "",
-    city: "",
-    minPrice: "",
-    maxPrice: "",
-    minWeight: "",
-    maxWeight: "",
-  });
+  const [advancedFilters, setAdvancedFilters] =
+    useState<AdvancedFilters>(DEFAULT_FILTERS);
+
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -66,55 +79,204 @@ export default function ListingsScreen() {
     );
   };
 
-  let filtered = listings.filter((l) => {
-    const matchSearch =
-      !search ||
-      l.title.toLowerCase().includes(search.toLowerCase()) ||
-      l.city.toLowerCase().includes(search.toLowerCase()) ||
-      l.breed.toLowerCase().includes(search.toLowerCase());
-    const matchCat = activeFilter === "all" || l.category === activeFilter;
-    const matchProp =
-      activeProperties.length === 0 ||
-      (l.animalProperty != null && activeProperties.includes(l.animalProperty));
+  const setSort = (sort: SortKey) =>
+    setAdvancedFilters((prev) => ({ ...prev, sort }));
 
-    let matchAdv = true;
-    if (advancedFilters.city && l.city !== advancedFilters.city) matchAdv = false;
-    
-    // Check price
-    const minP = parseInt(advancedFilters.minPrice);
-    if (!isNaN(minP) && l.price < minP) matchAdv = false;
-    const maxP = parseInt(advancedFilters.maxPrice);
-    if (!isNaN(maxP) && l.price > maxP) matchAdv = false;
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const breedQ = advancedFilters.breed.trim().toLowerCase();
+    const minP = parseInt(advancedFilters.minPrice, 10);
+    const maxP = parseInt(advancedFilters.maxPrice, 10);
+    const minW = parseInt(advancedFilters.minWeight, 10);
+    const maxW = parseInt(advancedFilters.maxWeight, 10);
+    const minA = parseInt(advancedFilters.minAge, 10);
+    const maxA = parseInt(advancedFilters.maxAge, 10);
 
-    // Check weight
-    const w = Number(l.weight);
-    if (!isNaN(w)) {
-      const minW = parseInt(advancedFilters.minWeight);
-      if (!isNaN(minW) && w < minW) matchAdv = false;
-      const maxW = parseInt(advancedFilters.maxWeight);
-      if (!isNaN(maxW) && w > maxW) matchAdv = false;
+    let result = listings.filter((l) => {
+      // Free-text search across multiple fields
+      if (q) {
+        const haystack = [
+          l.title,
+          l.city,
+          l.province,
+          l.district,
+          l.breed,
+          l.age,
+          l.description,
+          l.seller?.name,
+          ...(l.keywords ?? []),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+
+      // Category chip
+      if (activeFilter !== "all" && l.category !== activeFilter) return false;
+
+      // Property chips
+      if (
+        activeProperties.length > 0 &&
+        (l.animalProperty == null ||
+          !activeProperties.includes(l.animalProperty))
+      ) {
+        return false;
+      }
+
+      // Breed (substring match)
+      if (breedQ && !(l.breed ?? "").toLowerCase().includes(breedQ)) {
+        return false;
+      }
+
+      // Location
+      if (
+        advancedFilters.city &&
+        l.city.toLowerCase() !== advancedFilters.city.toLowerCase()
+      ) {
+        return false;
+      }
+      if (
+        advancedFilters.province &&
+        (l.province ?? "").toLowerCase() !==
+          advancedFilters.province.toLowerCase()
+      ) {
+        return false;
+      }
+
+      // Price
+      if (!Number.isNaN(minP) && l.price < minP) return false;
+      if (!Number.isNaN(maxP) && l.price > maxP) return false;
+
+      // Weight
+      const w = Number(l.weight);
+      if (!Number.isNaN(w)) {
+        if (!Number.isNaN(minW) && w < minW) return false;
+        if (!Number.isNaN(maxW) && w > maxW) return false;
+      }
+
+      // Age (months)
+      if (!Number.isNaN(minA) || !Number.isNaN(maxA)) {
+        const months = parseAgeMonths(l.age);
+        if (months == null) return false;
+        if (!Number.isNaN(minA) && months < minA) return false;
+        if (!Number.isNaN(maxA) && months > maxA) return false;
+      }
+
+      // Toggles
+      if (advancedFilters.featuredOnly && !l.isFeatured) return false;
+      if (
+        advancedFilters.withImagesOnly &&
+        (!l.images || l.images.length === 0)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Sort
+    switch (advancedFilters.sort) {
+      case "price_low":
+        result = [...result].sort((a, b) => a.price - b.price);
+        break;
+      case "price_high":
+        result = [...result].sort((a, b) => b.price - a.price);
+        break;
+      case "weight_high":
+        result = [...result].sort(
+          (a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0)
+        );
+        break;
+      case "weight_low":
+        result = [...result].sort(
+          (a, b) => (Number(a.weight) || 0) - (Number(b.weight) || 0)
+        );
+        break;
+      case "newest":
+      default:
+        result = [...result].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        break;
     }
 
-    return matchSearch && matchCat && matchProp && matchAdv;
-  });
+    return result;
+  }, [
+    listings,
+    search,
+    activeFilter,
+    activeProperties,
+    advancedFilters,
+  ]);
 
-  const hasAdvancedFilters = () =>
-    Boolean(
-      advancedFilters.province ||
-        advancedFilters.city ||
-        advancedFilters.minPrice ||
-        advancedFilters.maxPrice ||
-        advancedFilters.minWeight ||
-        advancedFilters.maxWeight
-    );
-
-  if (sortBy === "price_low") {
-    filtered = [...filtered].sort((a, b) => a.price - b.price);
-  } else if (sortBy === "price_high") {
-    filtered = [...filtered].sort((a, b) => b.price - a.price);
-  } else if (sortBy === "weight_high") {
-    filtered = [...filtered].sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0));
+  // Build "active filter" chip list so the user can see and remove what's applied.
+  const activeChips: { key: string; label: string; clear: () => void }[] = [];
+  if (advancedFilters.city) {
+    activeChips.push({
+      key: "loc",
+      label: advancedFilters.province
+        ? `${advancedFilters.city}, ${advancedFilters.province}`
+        : advancedFilters.city,
+      clear: () =>
+        setAdvancedFilters((p) => ({ ...p, city: "", province: "" })),
+    });
   }
+  if (advancedFilters.breed) {
+    activeChips.push({
+      key: "breed",
+      label: `Breed: ${advancedFilters.breed}`,
+      clear: () => setAdvancedFilters((p) => ({ ...p, breed: "" })),
+    });
+  }
+  if (advancedFilters.minPrice || advancedFilters.maxPrice) {
+    activeChips.push({
+      key: "price",
+      label: `Rs. ${advancedFilters.minPrice || "0"} – ${
+        advancedFilters.maxPrice || "∞"
+      }`,
+      clear: () =>
+        setAdvancedFilters((p) => ({ ...p, minPrice: "", maxPrice: "" })),
+    });
+  }
+  if (advancedFilters.minWeight || advancedFilters.maxWeight) {
+    activeChips.push({
+      key: "weight",
+      label: `${advancedFilters.minWeight || "0"}–${
+        advancedFilters.maxWeight || "∞"
+      } kg`,
+      clear: () =>
+        setAdvancedFilters((p) => ({ ...p, minWeight: "", maxWeight: "" })),
+    });
+  }
+  if (advancedFilters.minAge || advancedFilters.maxAge) {
+    activeChips.push({
+      key: "age",
+      label: `${advancedFilters.minAge || "0"}–${
+        advancedFilters.maxAge || "∞"
+      } mo`,
+      clear: () =>
+        setAdvancedFilters((p) => ({ ...p, minAge: "", maxAge: "" })),
+    });
+  }
+  if (advancedFilters.featuredOnly) {
+    activeChips.push({
+      key: "featured",
+      label: "Featured only",
+      clear: () => setAdvancedFilters((p) => ({ ...p, featuredOnly: false })),
+    });
+  }
+  if (advancedFilters.withImagesOnly) {
+    activeChips.push({
+      key: "withImages",
+      label: "With photos",
+      clear: () =>
+        setAdvancedFilters((p) => ({ ...p, withImagesOnly: false })),
+    });
+  }
+
+  const hasAdvancedFilters = activeChips.length > 0;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.navy }]}>
@@ -141,33 +303,45 @@ export default function ListingsScreen() {
           >
             <Feather name="search" size={16} color={colors.mutedForeground} />
             <TextInput
-            style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder="Search by name, city, breed..."
-            placeholderTextColor={colors.mutedForeground}
-            value={search}
-            onChangeText={setSearch}
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch("")}>
-              <Feather name="x" size={14} color={colors.mutedForeground} />
-            </TouchableOpacity>
-          )}
+              style={[styles.searchInput, { color: colors.foreground }]}
+              placeholder="Search by name, city, breed..."
+              placeholderTextColor={colors.mutedForeground}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch("")}>
+                <Feather name="x" size={14} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            )}
           </View>
           <TouchableOpacity
             onPress={() => setFilterModalVisible(true)}
             style={[
               styles.filterBtn,
               {
-                backgroundColor: hasAdvancedFilters() ? colors.teal : colors.navyLight,
-                borderColor: hasAdvancedFilters() ? colors.teal : colors.border,
+                backgroundColor: hasAdvancedFilters
+                  ? colors.teal
+                  : colors.navyLight,
+                borderColor: hasAdvancedFilters ? colors.teal : colors.border,
               },
             ]}
           >
-            <Feather name="sliders" size={20} color={hasAdvancedFilters() ? colors.navy : colors.foreground} />
+            <Feather
+              name="sliders"
+              size={20}
+              color={hasAdvancedFilters ? colors.navy : colors.foreground}
+            />
+            {hasAdvancedFilters && (
+              <View style={[styles.filterBadge, { backgroundColor: colors.gold }]}>
+                <Text style={styles.filterBadgeText}>{activeChips.length}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
-        {/* Filters */}
+        {/* Category chips */}
         <FlatList
           data={FILTERS}
           horizontal
@@ -181,9 +355,7 @@ export default function ListingsScreen() {
                 styles.filterChip,
                 {
                   backgroundColor:
-                    activeFilter === item.id
-                      ? colors.teal
-                      : colors.navyMid,
+                    activeFilter === item.id ? colors.teal : colors.navyMid,
                   borderColor:
                     activeFilter === item.id ? colors.teal : colors.border,
                 },
@@ -206,7 +378,7 @@ export default function ListingsScreen() {
           )}
         />
 
-        {/* Property Chips */}
+        {/* Property chips */}
         <View style={styles.propertyRow}>
           <Text style={[styles.propertyLabel, { color: colors.mutedForeground }]}>
             Property:
@@ -225,10 +397,24 @@ export default function ListingsScreen() {
                   },
                 ]}
               >
-                <Text style={[styles.propertyChipText, { color: isActive ? colors.gold : colors.mutedForeground }]}>
+                <Text
+                  style={[
+                    styles.propertyChipText,
+                    { color: isActive ? colors.gold : colors.mutedForeground },
+                  ]}
+                >
                   {chip.label}
                 </Text>
-                <Text style={[styles.propertyChipAr, { color: isActive ? colors.gold + "cc" : colors.mutedForeground + "88" }]}>
+                <Text
+                  style={[
+                    styles.propertyChipAr,
+                    {
+                      color: isActive
+                        ? colors.gold + "cc"
+                        : colors.mutedForeground + "88",
+                    },
+                  ]}
+                >
                   {chip.labelAr}
                 </Text>
               </TouchableOpacity>
@@ -236,23 +422,65 @@ export default function ListingsScreen() {
           })}
         </View>
 
-        {/* Sort */}
+        {/* Active applied filters (from modal) */}
+        {activeChips.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.appliedRow}
+          >
+            {activeChips.map((c) => (
+              <TouchableOpacity
+                key={c.key}
+                onPress={c.clear}
+                style={[
+                  styles.appliedChip,
+                  {
+                    backgroundColor: colors.teal + "22",
+                    borderColor: colors.teal,
+                  },
+                ]}
+              >
+                <Text style={[styles.appliedChipText, { color: colors.teal }]}>
+                  {c.label}
+                </Text>
+                <Feather name="x" size={12} color={colors.teal} />
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              onPress={() => setAdvancedFilters(DEFAULT_FILTERS)}
+              style={[styles.clearAllBtn, { borderColor: colors.border }]}
+            >
+              <Text
+                style={[styles.clearAllText, { color: colors.mutedForeground }]}
+              >
+                Clear all
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
+        )}
+
+        {/* Sort + count */}
         <View style={styles.sortRow}>
           <Text style={[styles.countText, { color: colors.mutedForeground }]}>
-            {filtered.length} animals
+            {filtered.length} animal{filtered.length === 1 ? "" : "s"}
           </Text>
           <View style={styles.sortChips}>
-            {SORT_OPTIONS.map((opt) => (
+            {QUICK_SORT.map((opt) => (
               <TouchableOpacity
                 key={opt.id}
-                onPress={() => setSortBy(opt.id)}
+                onPress={() => setSort(opt.id)}
                 style={[
                   styles.sortChip,
                   {
                     backgroundColor:
-                      sortBy === opt.id ? colors.gold + "22" : "transparent",
+                      advancedFilters.sort === opt.id
+                        ? colors.gold + "22"
+                        : "transparent",
                     borderColor:
-                      sortBy === opt.id ? colors.gold + "66" : colors.border,
+                      advancedFilters.sort === opt.id
+                        ? colors.gold + "66"
+                        : colors.border,
                   },
                 ]}
               >
@@ -261,7 +489,9 @@ export default function ListingsScreen() {
                     styles.sortText,
                     {
                       color:
-                        sortBy === opt.id ? colors.gold : colors.mutedForeground,
+                        advancedFilters.sort === opt.id
+                          ? colors.gold
+                          : colors.mutedForeground,
                     },
                   ]}
                 >
@@ -297,8 +527,30 @@ export default function ListingsScreen() {
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
               Try adjusting your search or filters
             </Text>
+            {(hasAdvancedFilters || search || activeFilter !== "all" || activeProperties.length > 0) && (
+              <TouchableOpacity
+                onPress={() => {
+                  setSearch("");
+                  setActiveFilter("all");
+                  setActiveProperties([]);
+                  setAdvancedFilters(DEFAULT_FILTERS);
+                }}
+                style={[styles.resetCta, { backgroundColor: colors.teal }]}
+              >
+                <Text style={[styles.resetCtaText, { color: colors.navy }]}>
+                  Reset all filters
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         }
+      />
+
+      <FilterModal
+        visible={isFilterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        filters={advancedFilters}
+        onApply={(next) => setAdvancedFilters(next)}
       />
     </View>
   );
@@ -339,6 +591,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  filterBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    color: "#000",
+    fontFamily: "Inter_700Bold",
+  },
   searchInput: {
     flex: 1,
     fontSize: 14,
@@ -352,6 +620,34 @@ const styles = StyleSheet.create({
   },
   filterText: {
     fontSize: 13,
+    fontFamily: "Inter_500Medium",
+  },
+  appliedRow: {
+    gap: 8,
+    paddingBottom: 10,
+    paddingRight: 8,
+  },
+  appliedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  appliedChipText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
+  clearAllBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  clearAllText: {
+    fontSize: 12,
     fontFamily: "Inter_500Medium",
   },
   sortRow: {
@@ -418,5 +714,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
+  },
+  resetCta: {
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  resetCtaText: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
   },
 });
