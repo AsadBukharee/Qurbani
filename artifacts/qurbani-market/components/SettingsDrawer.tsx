@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/contexts/AppContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -30,6 +31,7 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, language, setLanguage, logout } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const translateX = useRef(new Animated.Value(DRAWER_WIDTH)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -73,6 +75,16 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
       },
     },
     {
+      icon: "heart" as const,
+      label: "Wishlist",
+      sublabel: "Your saved animals",
+      color: "#FF4B6E",
+      onPress: () => {
+        onClose();
+        router.push("/wishlist");
+      },
+    },
+    {
       icon: "credit-card" as const,
       label: "Wallet",
       sublabel: "Manage funds",
@@ -80,6 +92,15 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
       onPress: () => {
         onClose();
         router.push("/wallet");
+      },
+    },
+    {
+      icon: (theme === "dark" ? "sun" : "moon") as "sun" | "moon",
+      label: theme === "dark" ? "Light Theme" : "Dark Theme",
+      sublabel: "Tap to switch appearance",
+      color: theme === "dark" ? colors.gold : colors.teal,
+      onPress: () => {
+        toggleTheme();
       },
     },
     {

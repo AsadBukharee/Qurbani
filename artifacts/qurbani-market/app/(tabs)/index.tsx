@@ -2,7 +2,6 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-  Animated,
   Dimensions,
   FlatList,
   Image,
@@ -18,10 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AnimalCard } from "@/components/AnimalCard";
 import { BoliCard } from "@/components/BoliCard";
 import { CategoryGrid } from "@/components/CategoryGrid";
-import { FilterModal } from "@/components/FilterModal";
 import { StarryBackground } from "@/components/StarryBackground";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { LocationPickerSheet, type LocationResult } from "@/components/LocationPickerSheet";
+import { LocationFormSheet } from "@/components/LocationFormSheet";
 import { SettingsDrawer } from "@/components/SettingsDrawer";
 import { useApp } from "@/contexts/AppContext";
 import { useBoli } from "@/contexts/BoliContext";
@@ -62,16 +59,6 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
-  const [rangeFilters, setRangeFilters] = useState({
-    province: "",
-    city: "",
-    minPrice: "",
-    maxPrice: "",
-    minWeight: "",
-    maxWeight: "",
-  });
-  const [filterModalOpen, setFilterModalOpen] = useState(false);
 
   const activeBoliListings = boliListings.filter((l) => l.status === "active").slice(0, 3);
   const [activeBanner, setActiveBanner] = useState(0);
@@ -82,27 +69,23 @@ export default function HomeScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  // Default behavior: when no search query is entered, prefer animals near the
+  // user's saved city. As soon as the user types, search across all listings.
+  const userCity = location?.city?.trim().toLowerCase() ?? "";
   const filteredListings = listings.filter((l) => {
-    const matchesSearch =
-      !search ||
-      l.title.toLowerCase().includes(search.toLowerCase()) ||
-      l.city.toLowerCase().includes(search.toLowerCase()) ||
-      l.breed.toLowerCase().includes(search.toLowerCase());
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const matchesSearch =
+        l.title.toLowerCase().includes(q) ||
+        l.city.toLowerCase().includes(q) ||
+        l.breed.toLowerCase().includes(q);
+      const matchesCat = !selectedCategory || l.category === selectedCategory;
+      return matchesSearch && matchesCat;
+    }
     const matchesCat = !selectedCategory || l.category === selectedCategory;
-    const matchesProp = selectedProperties.length === 0 || (l.animalProperty && selectedProperties.includes(l.animalProperty));
-    
-    const minP = parseInt(rangeFilters.minPrice, 10) || 0;
-    const maxP = parseInt(rangeFilters.maxPrice, 10) || Infinity;
-    const matchesPrice = l.price >= minP && l.price <= maxP;
-
-    const minW = parseInt(rangeFilters.minWeight, 10) || 0;
-    const maxW = parseInt(rangeFilters.maxWeight, 10) || Infinity;
-    const weightVal = typeof l.weight === "number" ? l.weight : (parseInt(String(l.weight), 10) || 0);
-    const matchesWeight = weightVal >= minW && weightVal <= maxW;
-    
-    const matchesAdvCity = !rangeFilters.city || l.city === rangeFilters.city;
-
-    return matchesSearch && matchesCat && matchesProp && matchesPrice && matchesWeight && matchesAdvCity;
+    const matchesNearby =
+      !userCity || l.city.toLowerCase() === userCity;
+    return matchesCat && matchesNearby;
   });
 
   const featuredListings = listings.filter((l) => l.isFeatured);
@@ -143,29 +126,11 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <View style={styles.headerActions}>
               <TouchableOpacity
-                onPress={() => router.push("/wishlist")}
-                style={[styles.headerIconBtn, { backgroundColor: colors.navyMid, borderColor: colors.border }]}
-              >
-                <Feather name="heart" size={18} color="#FF4B6E" />
-                {favorites.length > 0 && (
-                  <View style={[styles.iconBadge, { backgroundColor: "#FF4B6E" }]}>
-                    <Text style={styles.iconBadgeText}>{favorites.length}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => router.push("/wallet")}
-                style={[styles.headerIconBtn, { backgroundColor: colors.navyMid, borderColor: colors.border }]}
-              >
-                <Feather name="credit-card" size={18} color={colors.teal} />
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.headerIconBtn, { backgroundColor: colors.navyMid, borderColor: colors.border }]}
               >
                 <Feather name="bell" size={18} color={colors.teal} />
                 <View style={{ position: "absolute", top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.gold }} />
               </TouchableOpacity>
-              <ThemeToggle />
               <TouchableOpacity
                 onPress={() => setSettingsOpen(true)}
                 style={[styles.headerIconBtn, { backgroundColor: colors.navyMid, borderColor: colors.border }]}
@@ -176,78 +141,49 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search Bar */}
+        {/* Search Bar — no filter button on home; tap "Search" tab for full filters */}
         <View style={styles.searchSection}>
-          <View style={styles.searchRow}>
-            <View
-              style={[
-                styles.searchBar,
-                { backgroundColor: colors.navyLight, borderColor: colors.border },
-              ]}
-            >
-              <Feather name="search" size={18} color={colors.mutedForeground} />
-              <TextInput
-                style={[styles.searchInput, { color: colors.foreground }]}
-                placeholder="Search animals, breeds, cities..."
-                placeholderTextColor={colors.mutedForeground}
-                value={search}
-                onChangeText={setSearch}
-              />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch("")}>
-                  <Feather name="x" size={16} color={colors.mutedForeground} />
-                </TouchableOpacity>
-              )}
+          <View
+            style={[
+              styles.searchBar,
+              { backgroundColor: colors.navyLight, borderColor: colors.border },
+            ]}
+          >
+            <Feather name="search" size={18} color={colors.mutedForeground} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.foreground }]}
+              placeholder={
+                location?.city
+                  ? `Search animals near ${location.city}...`
+                  : "Search animals, breeds, cities..."
+              }
+              placeholderTextColor={colors.mutedForeground}
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+              onSubmitEditing={() => {
+                if (search.trim()) {
+                  router.push({
+                    pathname: "/(tabs)/listings",
+                    params: { q: search.trim() },
+                  });
+                }
+              }}
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch("")}>
+                <Feather name="x" size={16} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            )}
+          </View>
+          {!search && location?.city && (
+            <View style={styles.nearbyHintRow}>
+              <Feather name="map-pin" size={11} color={colors.teal} />
+              <Text style={[styles.nearbyHintText, { color: colors.mutedForeground }]}>
+                Showing animals near <Text style={{ color: colors.teal, fontFamily: "Inter_600SemiBold" }}>{location.city}</Text> · Use the Search tab for filters
+              </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setFilterModalOpen(true)}
-              style={[
-                styles.filterBtn,
-                { backgroundColor: colors.navyLight, borderColor: colors.border },
-              ]}
-            >
-              <Feather name="sliders" size={18} color={colors.teal} />
-              {Object.values(rangeFilters).some(v => v !== "") && (
-                 <View style={[styles.filterDot, { backgroundColor: colors.gold }]} />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Property Chips */}
-          <View style={styles.propertyFilters}>
-            {["khasi", "andal"].map((prop) => {
-              const isActive = selectedProperties.includes(prop);
-              return (
-                <TouchableOpacity
-                  key={prop}
-                  onPress={() => {
-                    if (isActive) {
-                      setSelectedProperties(selectedProperties.filter((p) => p !== prop));
-                    } else {
-                      setSelectedProperties([...selectedProperties, prop]);
-                    }
-                  }}
-                  style={[
-                    styles.propChip,
-                    {
-                      backgroundColor: isActive ? colors.gold + "22" : colors.navyMid,
-                      borderColor: isActive ? colors.gold : colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.propChipText,
-                      { color: isActive ? colors.gold : colors.mutedForeground },
-                    ]}
-                  >
-                    {prop.charAt(0).toUpperCase() + prop.slice(1)}
-                  </Text>
-                  {isActive && <Feather name="check" size={10} color={colors.gold} />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          )}
         </View>
 
         {/* Banner Carousel */}
@@ -455,22 +391,9 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <LocationPickerSheet
+      <LocationFormSheet
         visible={locationPickerOpen}
         onClose={() => setLocationPickerOpen(false)}
-        onSelect={(loc: LocationResult) => {
-          // You might have a setLocation logic here, or just save to some context
-          setLocationPickerOpen(false);
-        }}
-        initial={{ province: "", city: "", street: "" }}
-        skipStreet
-      />
-
-      <FilterModal
-        visible={filterModalOpen}
-        onClose={() => setFilterModalOpen(false)}
-        filters={rangeFilters}
-        onApply={setRangeFilters}
       />
 
       {/* Floating Sell Button */}
@@ -508,8 +431,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 16,
+    gap: 8,
   },
   bismillah: {
     fontSize: 16,
@@ -530,6 +454,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingTop: 4,
     gap: 8,
+    flexShrink: 1,
   },
   eidBadge: {
     paddingHorizontal: 10,
@@ -558,17 +483,30 @@ const styles = StyleSheet.create({
   locationPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
+    gap: 4,
+    paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    maxWidth: 140,
+    maxWidth: 130,
+    alignSelf: "flex-end",
   },
   locationText: {
     fontSize: 11,
     fontFamily: "Inter_600SemiBold",
-    maxWidth: 90,
+    flexShrink: 1,
+  },
+  nearbyHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 4,
+    marginTop: 2,
+  },
+  nearbyHintText: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    flexShrink: 1,
   },
   iconBadge: {
     position: "absolute",

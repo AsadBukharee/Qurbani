@@ -21,6 +21,7 @@ import { StarryBackground } from "@/components/StarryBackground";
 import { StepperProgress } from "@/components/StepperProgress";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
 import { useApp } from "@/contexts/AppContext";
+import { useLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
 import { animals as animalsApi, apiErrorMessage } from "@/lib/api";
 
@@ -31,7 +32,8 @@ export default function CreateAdScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, addListing, platformConfig } = useApp();
-  
+  const { location: savedLocation, setLocation: persistLocation } = useLocation();
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -41,15 +43,29 @@ export default function CreateAdScreen() {
   const [coverIndex, setCoverIndex] = useState(0);
   const [uploadingMedia, setUploadingMedia] = useState(false);
 
-  // Form State - Step 2 (Location)
+  // Form State - Step 2 (Location) — pre-filled from saved location (AsyncStorage)
   const [location, setLocation] = useState({
-    province: "",
-    district: "",
-    city: "",
-    address: "",
-    lat: null as number | null,
-    lon: null as number | null,
+    province: savedLocation?.province ?? "",
+    district: savedLocation?.district ?? "",
+    city: savedLocation?.city ?? "",
+    address: savedLocation?.address ?? "",
+    lat: (savedLocation?.lat ?? null) as number | null,
+    lon: (savedLocation?.lng ?? null) as number | null,
   });
+
+  // If the saved location loads from AsyncStorage AFTER mount (async), backfill
+  // the form once — but never overwrite values the user has already changed.
+  useEffect(() => {
+    if (!savedLocation) return;
+    setLocation((prev) => ({
+      province: prev.province || (savedLocation.province ?? ""),
+      district: prev.district || (savedLocation.district ?? ""),
+      city: prev.city || savedLocation.city,
+      address: prev.address || (savedLocation.address ?? ""),
+      lat: prev.lat ?? (savedLocation.lat ?? null),
+      lon: prev.lon ?? (savedLocation.lng ?? null),
+    }));
+  }, [savedLocation]);
 
   // Form State - Step 3 (Details)
   const [details, setDetails] = useState({
@@ -171,14 +187,29 @@ export default function CreateAdScreen() {
         longitude: loc.coords.longitude,
       });
 
-      setLocation({
+      const next = {
         ...location,
         lat: loc.coords.latitude,
         lon: loc.coords.longitude,
         city: geocode?.city || geocode?.subregion || "",
         province: geocode?.region || "",
         address: geocode?.street || geocode?.name || "",
-      });
+      };
+      setLocation(next);
+      // Also persist to user-wide saved location so the home pill + future ads
+      // pick this up automatically.
+      try {
+        await persistLocation({
+          city: next.city,
+          province: next.province,
+          address: next.address,
+          lat: next.lat ?? undefined,
+          lng: next.lon ?? undefined,
+          source: "gps",
+        });
+      } catch {
+        // non-fatal — form state is the source of truth for this submission
+      }
     } catch (error) {
       Alert.alert("Error", "Could not fetch location.");
     } finally {

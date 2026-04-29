@@ -29,5 +29,10 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ## Apps
 
 - **Qurbani** (`artifacts/qurbani-market`) — Expo / React Native mobile app for an animal/livestock marketplace. Cloned from `git@github.com:AsadBukharee/Qurbani.git`. Uses expo-router, AsyncStorage, expo-image, expo-image-picker, expo-location, react-native-reanimated, and the shared API client.
+  - **Bottom tabs**: Home, Search (formerly "Browse"), Boli, Karwan, Inbox, Profile. Tasbih is hidden via `href: null` (file kept for deep-link compatibility).
+  - **Side drawer** (`components/SettingsDrawer.tsx`) — opened from the home hamburger icon. Houses Language, Notifications, Wishlist, Wallet, Dark/Light theme toggle, My Ads, and Sign Out. Home header only renders the bell + hamburger to keep small devices uncluttered.
+  - **Saved location** (`contexts/LocationContext.tsx`) — persisted to AsyncStorage under `user_location` (city, province, address, lat/lng, source). The `LocationFormSheet` component (mirrors step 2 of the create-ad wizard) is the single editor used by both the home "Set location" pill and the create-ad flow. The create wizard pre-fills from saved location and writes back when GPS is fetched.
+  - **Home search** has no filter button — by default it filters listings to the user's saved city; pressing return jumps to the Search tab. The Search tab carries the full filter set (FilterModal: city/province/price/weight + sort).
+  - Backend dependencies for the new flows are listed in `attached_assets/backend_tasks.md` (saved location, wishlist, theme preference, animals search w/ proximity, notifications, wallet).
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

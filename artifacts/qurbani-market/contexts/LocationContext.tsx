@@ -10,6 +10,7 @@ export interface UserLocation {
   city: string;
   district?: string;
   province?: string;
+  address?: string;
   source: "gps" | "manual";
   lat?: number;
   lng?: number;

@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "0GPcpf-3eWAZJWmQ_audH"
+uri = "file://attached_assets/backend_tasks.md"
+type = "text"
+title = "Qurbani — Backend Tasks for backend agent"

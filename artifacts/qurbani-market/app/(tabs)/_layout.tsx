@@ -52,7 +52,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="listings"
         options={{
-          title: "Browse",
+          title: "Search",
           tabBarIcon: ({ color }) => (
             <Feather name="search" size={22} color={color} />
           ),
@@ -86,13 +86,11 @@ export default function TabLayout() {
           tabBarActiveTintColor: colors.gold,
         }}
       />
+      {/* Tasbih removed from bottom nav per design — file kept so deep links still work */}
       <Tabs.Screen
         name="tasbih"
         options={{
-          title: "Tasbih",
-          tabBarIcon: ({ color }) => (
-            <Feather name="rotate-cw" size={22} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
