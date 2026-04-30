@@ -40,7 +40,7 @@ const FEATURED_IMAGES = [
     id: "f2",
     labelKey: "home.featured.karwan.label",
     subKey: "home.featured.karwan.sub",
-    image: require("../../assets/images/cow_featured.png"),
+    image: require("../../assets/images/karwan.png"),
   },
   {
     id: "f3",
@@ -364,8 +364,8 @@ export default function HomeScreen() {
                 selectedCategory
                   ? `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}s`
                   : search
-                  ? t("common.search")
-                  : t("home.recentListings")
+                    ? t("common.search")
+                    : t("home.recentListings")
               }
               colors={colors}
               urdu={urdu}
