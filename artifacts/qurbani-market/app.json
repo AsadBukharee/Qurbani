@@ -1,0 +1,85 @@
+{
+  "expo": {
+    "name": "Qurbani",
+    "slug": "qurbani",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "qurbani",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.jpg",
+      "resizeMode": "cover",
+      "backgroundColor": "#0B1E2D"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.qurbani.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take photos of animals you want to sell.",
+        "NSPhotoLibraryUsageDescription": "Pick photos for your animal listings.",
+        "NSLocationWhenInUseUsageDescription": "Show animals near your location."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.qurbani.app",
+      "permissions": [
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CALL_PHONE",
+        "READ_CONTACTS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#926B1F",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Qurbani to use your location to show nearby animals."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Qurbani to access your photos for animal listings.",
+          "cameraPermission": "Allow Qurbani to use your camera to take animal photos."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8bf29ca4-5286-4d97-9063-4364fca377b9"
+      }
+    },
+    "owner": "asadnaqvee"
+  }
+}

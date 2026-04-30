@@ -1,0 +1,197 @@
+{
+  "info": {
+    "name": "Qurbani Market API - Updated",
+    "description": "Complete API collection for Qurbani Market backend.\n\n## Authentication\n- Login returns **Fernet-encrypted** JWT tokens.\n- Send encrypted token as `Authorization: Bearer <encrypted_token>`.\n- All IDs in URLs and responses are **hashid-encoded**.\n\n## Public Access\n- `GET /api/animals/` and `GET /api/boli/` are now accessible without authentication.\n- `GET /api/settings/platform/` is publicly accessible.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://qbni.fosterhartley.uk" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "animal_id", "value": "" },
+    { "key": "boli_id", "value": "" },
+    { "key": "karwan_id", "value": "" },
+    { "key": "user_id", "value": "" },
+    { "key": "room_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authentication & Users",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+923001234567\",\n  \"name\": \"Test User\",\n  \"role\": \"buyer\",\n  \"password\": \"secure123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/auth/register/", "host": ["{{base_url}}"], "path": ["api", "auth", "register", ""] }
+          }
+        },
+        {
+          "name": "Login (Regular User)",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+923001234567\",\n  \"password\": \"secure123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/auth/login/", "host": ["{{base_url}}"], "path": ["api", "auth", "login", ""] }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/auth/me/", "host": ["{{base_url}}"], "path": ["api", "auth", "me", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Animals",
+      "item": [
+        {
+          "name": "List Animals (Public)",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": {
+              "raw": "{{base_url}}/api/animals/?category=cow&status=published",
+              "host": ["{{base_url}}"],
+              "path": ["api", "animals", ""],
+              "query": [
+                { "key": "category", "value": "cow" },
+                { "key": "status", "value": "published" },
+                { "key": "min_price", "value": "50000", "disabled": true },
+                { "key": "max_price", "value": "200000", "disabled": true },
+                { "key": "city", "value": "Lahore", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Animal",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sahiwal Cow\",\n  \"category\": \"cow\",\n  \"animal_property\": \"khasi\",\n  \"price\": 185000,\n  \"weight\": \"320 kg\",\n  \"age\": \"2.5 years\",\n  \"breed\": \"Sahiwal\",\n  \"city\": \"Multan\",\n  \"description\": \"Healthy cow with all vaccinations.\",\n  \"images\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/animals/", "host": ["{{base_url}}"], "path": ["api", "animals", ""] }
+          }
+        },
+        {
+          "name": "My Ads",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/animals/my-ads/", "host": ["{{base_url}}"], "path": ["api", "animals", "my-ads", ""] }
+          }
+        },
+        {
+          "name": "Publish Ad",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/api/animals/{{animal_id}}/publish/", "host": ["{{base_url}}"], "path": ["api", "animals", "{{animal_id}}", "publish", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Boli (Auctions)",
+      "item": [
+        {
+          "name": "List Auctions (Public)",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{base_url}}/api/boli/", "host": ["{{base_url}}"], "path": ["api", "boli", ""] }
+          }
+        },
+        {
+          "name": "Place Bid",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 125000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/boli/{{boli_id}}/bid/", "host": ["{{base_url}}"], "path": ["api", "boli", "{{boli_id}}", "bid", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Karwan (Transport)",
+      "item": [
+        {
+          "name": "List Karwans",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/karwan/", "host": ["{{base_url}}"], "path": ["api", "karwan", ""] }
+          }
+        },
+        {
+          "name": "Book Karwan",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickup_point\": \"Main Mandi, Lahore\",\n  \"dropoff_point\": \"DHA Phase 6\",\n  \"animal_type\": \"cow\",\n  \"animal_count\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/karwan/{{karwan_id}}/book/", "host": ["{{base_url}}"], "path": ["api", "karwan", "{{karwan_id}}", "book", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Wallet",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/wallet/", "host": ["{{base_url}}"], "path": ["api", "wallet", ""] }
+          }
+        },
+        {
+          "name": "Submit Payment Request",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_receiver\": \"{{receiver_id}}\",\n  \"amount\": 5000,\n  \"transaction_id\": \"TID-992834\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/api/wallet/payment-requests/", "host": ["{{base_url}}"], "path": ["api", "wallet", "payment-requests", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Platform Config (Public)",
+          "request": {
+            "method": "GET",
+            "auth": { "type": "noauth" },
+            "url": { "raw": "{{base_url}}/api/settings/platform/", "host": ["{{base_url}}"], "path": ["api", "settings", "platform", ""] }
+          }
+        }
+      ]
+    }
+  ]
+}
