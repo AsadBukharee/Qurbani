@@ -25,26 +25,27 @@ import { useBoli } from "@/contexts/BoliContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { useT, useUrduTextStyle } from "@/lib/i18n";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const FEATURED_IMAGES = [
   {
     id: "f1",
-    label: "Eid ul-Adha 2025",
-    sub: "Buy Qurbani Animals with Trust",
+    labelKey: "home.featured.eid.label",
+    subKey: "home.featured.eid.sub",
     image: require("../../assets/images/goat_featured.png"),
   },
   {
     id: "f2",
-    label: "Premium Cows",
-    sub: "7-Share Qurbani Available",
+    labelKey: "home.featured.karwan.label",
+    subKey: "home.featured.karwan.sub",
     image: require("../../assets/images/cow_featured.png"),
   },
   {
     id: "f3",
-    label: "Dumba & Sheep",
-    sub: "Authentic Breeds, Best Prices",
+    labelKey: "home.featured.dumba.label",
+    subKey: "home.featured.dumba.sub",
     image: require("../../assets/images/sheep_featured.png"),
   },
 ];
@@ -57,6 +58,8 @@ export default function HomeScreen() {
   const { boliListings } = useBoli();
   const { location } = useLocation();
   const { theme } = useTheme();
+  const t = useT();
+  const urdu = useUrduTextStyle();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -119,8 +122,8 @@ export default function HomeScreen() {
               style={[styles.locationPill, { backgroundColor: colors.gold + "22", borderColor: colors.gold + "55" }]}
             >
               <Feather name="map-pin" size={12} color={colors.gold} />
-              <Text style={[styles.locationText, { color: colors.gold }]} numberOfLines={1}>
-                {location?.city || "Set location"}
+              <Text style={[styles.locationText, { color: colors.gold }, urdu]} numberOfLines={1}>
+                {location?.city || t("home.setLocation")}
               </Text>
               <Feather name="chevron-down" size={11} color={colors.gold} />
             </TouchableOpacity>
@@ -155,8 +158,8 @@ export default function HomeScreen() {
               style={[styles.searchInput, { color: colors.foreground }]}
               placeholder={
                 location?.city
-                  ? `Search animals near ${location.city}...`
-                  : "Search animals, breeds, cities..."
+                  ? `${t("common.search")} — ${location.city}`
+                  : t("home.searchPlaceholder")
               }
               placeholderTextColor={colors.mutedForeground}
               value={search}
@@ -227,13 +230,13 @@ export default function HomeScreen() {
                     { backgroundColor: colors.navy + "99" },
                   ]}
                 >
-                  <Text style={[styles.bannerTitle, { color: colors.gold }]}>
-                    ☽ {item.label}
+                  <Text style={[styles.bannerTitle, { color: colors.gold }, urdu]}>
+                    ☽ {t(item.labelKey)}
                   </Text>
                   <Text
-                    style={[styles.bannerSub, { color: colors.starWhite }]}
+                    style={[styles.bannerSub, { color: colors.starWhite }, urdu]}
                   >
-                    {item.sub}
+                    {t(item.subKey)}
                   </Text>
                 </View>
               </View>
@@ -259,7 +262,7 @@ export default function HomeScreen() {
 
         {/* Categories */}
         <View style={styles.section}>
-          <SectionTitle title="Categories" colors={colors} />
+          <SectionTitle title={t("home.categories")} colors={colors} urdu={urdu} />
           <CategoryGrid
             onSelect={(cat) => setSelectedCategory(cat || null)}
             selected={selectedCategory}
@@ -327,12 +330,12 @@ export default function HomeScreen() {
         {!search && !selectedCategory && (
           <View style={styles.section}>
             <View style={styles.sectionRow}>
-              <SectionTitle title="Featured Animals" colors={colors} />
+              <SectionTitle title={t("home.recentListings")} colors={colors} urdu={urdu} />
               <TouchableOpacity
                 onPress={() => router.push("/(tabs)/listings")}
               >
-                <Text style={[styles.seeAll, { color: colors.teal }]}>
-                  See all
+                <Text style={[styles.seeAll, { color: colors.teal }, urdu]}>
+                  {t("home.viewAll")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -361,20 +364,21 @@ export default function HomeScreen() {
                 selectedCategory
                   ? `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}s`
                   : search
-                  ? "Search Results"
-                  : "Latest Listings"
+                  ? t("common.search")
+                  : t("home.recentListings")
               }
               colors={colors}
+              urdu={urdu}
             />
-            <Text style={[styles.countBadge, { color: colors.mutedForeground }]}>
-              {filteredListings.length} animals
+            <Text style={[styles.countBadge, { color: colors.mutedForeground }, urdu]}>
+              {filteredListings.length}
             </Text>
           </View>
           {filteredListings.length === 0 ? (
             <View style={styles.emptyState}>
               <Feather name="search" size={40} color={colors.mutedForeground} />
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                No animals found
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }, urdu]}>
+                {t("home.noListings")}
               </Text>
             </View>
           ) : (
@@ -418,9 +422,9 @@ export default function HomeScreen() {
   );
 }
 
-function SectionTitle({ title, colors }: { title: string; colors: any }) {
+function SectionTitle({ title, colors, urdu }: { title: string; colors: any; urdu?: any }) {
   return (
-    <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+    <Text style={[styles.sectionTitle, { color: colors.foreground }, urdu]}>
       {title}
     </Text>
   );

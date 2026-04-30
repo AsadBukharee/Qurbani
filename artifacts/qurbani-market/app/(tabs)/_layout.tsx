@@ -3,9 +3,13 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, View, Text } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useT, useLang } from "@/lib/i18n";
 
 export default function TabLayout() {
   const colors = useColors();
+  const t = useT();
+  const lang = useLang();
+  const tabLabelFont = lang === "ur" ? "NotoNastaliqUrdu_400Regular" : "Inter_500Medium";
 
   return (
     <Tabs
@@ -35,15 +39,15 @@ export default function TabLayout() {
           />
         ),
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: "Inter_500Medium",
+          fontSize: lang === "ur" ? 12 : 11,
+          fontFamily: tabLabelFont,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tab.home"),
           tabBarIcon: ({ color }) => (
             <Feather name="home" size={22} color={color} />
           ),
@@ -52,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="listings"
         options={{
-          title: "Search",
+          title: t("tab.search"),
           tabBarIcon: ({ color }) => (
             <Feather name="search" size={22} color={color} />
           ),
@@ -61,7 +65,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="boli"
         options={{
-          title: "Boli",
+          title: t("tab.boli"),
           tabBarIcon: ({ color, focused }) => (
             <Feather
               name="trending-up"
@@ -75,7 +79,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="karwan"
         options={{
-          title: "Karwan",
+          title: t("tab.karwan"),
           tabBarIcon: ({ color, focused }) => (
             <Feather
               name="truck"
@@ -96,7 +100,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="inbox"
         options={{
-          title: "Inbox",
+          title: t("tab.inbox"),
           tabBarIcon: ({ color }) => (
             <View>
               <Feather name="message-circle" size={22} color={color} />
@@ -126,7 +130,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: t("tab.profile"),
           tabBarIcon: ({ color }) => (
             <Feather name="user" size={22} color={color} />
           ),

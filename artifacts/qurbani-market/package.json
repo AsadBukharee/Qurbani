@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@expo-google-fonts/noto-nastaliq-urdu": "^0.4.2",
     "axios": "^1.15.1",
     "expo-device": "~8.0.10",
     "expo-notifications": "~0.32.16",

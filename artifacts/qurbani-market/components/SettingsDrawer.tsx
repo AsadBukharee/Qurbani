@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/contexts/AppContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { useT, useUrduTextStyle } from "@/lib/i18n";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.8, 320);
@@ -32,6 +33,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
   const router = useRouter();
   const { user, language, setLanguage, logout } = useApp();
   const { theme, toggleTheme } = useTheme();
+  const t = useT();
+  const urdu = useUrduTextStyle();
   const translateX = useRef(new Animated.Value(DRAWER_WIDTH)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -56,8 +59,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
   const menuItems = [
     {
       icon: "globe" as const,
-      label: language === "en" ? "Language: English" : "زبان: اردو",
-      sublabel: "Tap to switch",
+      label: language === "en" ? t("drawer.languageEnglish") : t("drawer.languageUrdu"),
+      sublabel: t("drawer.tapToSwitch"),
       color: colors.teal,
       onPress: async () => {
         const newLang = language === "en" ? "ur" : "en";
@@ -66,8 +69,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     },
     {
       icon: "bell" as const,
-      label: "Notifications",
-      sublabel: "View all alerts",
+      label: t("drawer.notifications"),
+      sublabel: t("drawer.notifications.sub"),
       color: colors.gold,
       onPress: () => {
         onClose();
@@ -76,8 +79,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     },
     {
       icon: "heart" as const,
-      label: "Wishlist",
-      sublabel: "Your saved animals",
+      label: t("drawer.wishlist"),
+      sublabel: t("drawer.wishlist.sub"),
       color: "#FF4B6E",
       onPress: () => {
         onClose();
@@ -86,8 +89,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     },
     {
       icon: "credit-card" as const,
-      label: "Wallet",
-      sublabel: "Manage funds",
+      label: t("drawer.wallet"),
+      sublabel: t("drawer.wallet.sub"),
       color: colors.teal,
       onPress: () => {
         onClose();
@@ -96,8 +99,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     },
     {
       icon: (theme === "dark" ? "sun" : "moon") as "sun" | "moon",
-      label: theme === "dark" ? "Light Theme" : "Dark Theme",
-      sublabel: "Tap to switch appearance",
+      label: theme === "dark" ? t("drawer.lightTheme") : t("drawer.darkTheme"),
+      sublabel: t("drawer.theme.sub"),
       color: theme === "dark" ? colors.gold : colors.teal,
       onPress: () => {
         toggleTheme();
@@ -105,8 +108,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
     },
     {
       icon: "list" as const,
-      label: "My Ads",
-      sublabel: "Manage your listings",
+      label: t("drawer.myAds"),
+      sublabel: t("drawer.myAds.sub"),
       color: colors.gold,
       onPress: () => {
         onClose();
@@ -116,18 +119,27 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
   ];
 
   const handleSignOff = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: async () => {
-          onClose();
-          await logout();
-          router.replace("/auth/login");
+    Alert.alert(
+      t("drawer.signOut.confirm.title"),
+      t("drawer.signOut.confirm.body"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("drawer.signOut"),
+          style: "destructive",
+          onPress: async () => {
+            onClose();
+            await logout();
+            router.replace("/auth/login");
+          },
         },
-      },
-    ]);
+      ],
+    );
+  };
+
+  const handleOpenProfile = () => {
+    onClose();
+    router.push("/(tabs)/profile");
   };
 
   return (
@@ -157,15 +169,19 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Feather name="x" size={22} color={colors.foreground} />
           </TouchableOpacity>
-          <Text style={[styles.drawerTitle, { color: colors.foreground }]}>
-            Settings
+          <Text style={[styles.drawerTitle, { color: colors.foreground }, urdu]}>
+            {t("drawer.settings")}
           </Text>
           <View style={{ width: 36 }} />
         </View>
 
-        {/* User info */}
+        {/* User info — tap to open profile */}
         {user && (
-          <View
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={handleOpenProfile}
+            accessibilityRole="button"
+            accessibilityLabel={t("drawer.viewProfile")}
             style={[
               styles.userCard,
               { backgroundColor: colors.navy, borderColor: colors.border },
@@ -182,14 +198,28 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.userName, { color: colors.foreground }]}>
+              <Text style={[styles.userName, { color: colors.foreground }, urdu]}>
                 {user.name}
               </Text>
               <Text style={[styles.userPhone, { color: colors.mutedForeground }]}>
                 {user.phone}
               </Text>
+              <Text
+                style={[
+                  styles.userPhone,
+                  { color: colors.teal, marginTop: 2 },
+                  urdu,
+                ]}
+              >
+                {t("drawer.viewProfile")} ›
+              </Text>
             </View>
-          </View>
+            <Feather
+              name="chevron-right"
+              size={18}
+              color={colors.mutedForeground}
+            />
+          </TouchableOpacity>
         )}
 
         {/* Menu Items */}
@@ -217,13 +247,14 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
                 <Feather name={item.icon} size={18} color={item.color} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.menuLabel, { color: colors.foreground }]}>
+                <Text style={[styles.menuLabel, { color: colors.foreground }, urdu]}>
                   {item.label}
                 </Text>
                 <Text
                   style={[
                     styles.menuSublabel,
                     { color: colors.mutedForeground },
+                    urdu,
                   ]}
                 >
                   {item.sublabel}
@@ -245,8 +276,8 @@ export function SettingsDrawer({ visible, onClose }: SettingsDrawerProps) {
             style={[styles.signOffBtn, { borderColor: colors.destructive + "44" }]}
           >
             <Feather name="log-out" size={18} color={colors.destructive} />
-            <Text style={[styles.signOffText, { color: colors.destructive }]}>
-              Sign Out
+            <Text style={[styles.signOffText, { color: colors.destructive }, urdu]}>
+              {t("drawer.signOut")}
             </Text>
           </TouchableOpacity>
         </View>

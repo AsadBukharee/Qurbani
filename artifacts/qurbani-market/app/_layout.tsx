@@ -4,6 +4,7 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
+import { NotoNastaliqUrdu_400Regular } from "@expo-google-fonts/noto-nastaliq-urdu";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
@@ -163,6 +164,7 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    NotoNastaliqUrdu_400Regular,
     // Explicitly bundle icon fonts for native (Android/iOS) so Expo Go
     // registers them correctly. Skipped on web where CSS handles fonts.
     ...(Platform.OS !== "web"
