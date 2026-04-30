@@ -2,6 +2,17 @@
  * Countdown / timestamp utilities for auction timers.
  */
 
+export interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  totalSeconds: number;
+  isExpired: boolean;
+}
+
+export type UrgencyLevel = "low" | "medium" | "high" | "critical";
+
 /**
  * Format a UTC ISO timestamp into a human-readable local string.
  */
@@ -15,15 +26,16 @@ export function formatTimestamp(isoString: string): string {
 }
 
 /**
- * Returns a human-readable string for the time remaining until `endIso`.
- * Returns "Ended" if the auction is over.
+ * Returns a TimeLeft object with days/hours/minutes/seconds broken down.
  */
-export function getTimeLeft(endIso: string): string {
+export function getTimeLeft(endIso: string): TimeLeft {
   const now = Date.now();
   const end = new Date(endIso).getTime();
   const diff = end - now;
 
-  if (diff <= 0) return "Ended";
+  if (diff <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0, isExpired: true };
+  }
 
   const totalSeconds = Math.floor(diff / 1000);
   const days = Math.floor(totalSeconds / 86400);
@@ -31,14 +43,21 @@ export function getTimeLeft(endIso: string): string {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
-  if (days > 0) {
-    return `${days}d ${hours}h ${minutes}m`;
-  }
-  if (hours > 0) {
-    return `${hours}h ${minutes}m ${seconds}s`;
-  }
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-  return `${seconds}s`;
+  return { days, hours, minutes, seconds, totalSeconds, isExpired: false };
+}
+
+/**
+ * Returns an urgency level based on how much time is left.
+ *   critical  < 1 hour
+ *   high      < 6 hours
+ *   medium    < 24 hours
+ *   low       >= 24 hours
+ */
+export function getUrgencyLevel(timeLeft: TimeLeft): UrgencyLevel {
+  if (timeLeft.isExpired) return "critical";
+  const { totalSeconds } = timeLeft;
+  if (totalSeconds < 3600) return "critical";
+  if (totalSeconds < 6 * 3600) return "high";
+  if (totalSeconds < 24 * 3600) return "medium";
+  return "low";
 }
