@@ -170,7 +170,9 @@ export default function RootLayout() {
       : {}),
   });
 
-  const [showVideo, setShowVideo] = useState(Platform.OS !== "web");
+  // Show the video splash on every platform — including web — so the
+  // user sees one continuous splash experience.
+  const [showVideo, setShowVideo] = useState(true);
 
   // Failsafe: never block longer than 2.5s on font loading. Some networks
   // slow Google Fonts enough that fontfaceobserver throws a "timeout
