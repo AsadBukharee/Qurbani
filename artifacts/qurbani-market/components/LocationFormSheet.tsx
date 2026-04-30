@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocation, type UserLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
+import { MapPreview } from "@/components/MapPreview";
 
 export interface LocationFormValue {
   province: string;
@@ -242,6 +243,19 @@ export function LocationFormSheet({
                   color: colors.foreground,
                 },
               ]}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.mutedForeground }]}>
+              Map Preview
+            </Text>
+            <MapPreview
+              lat={form.lat}
+              lon={form.lon}
+              height={170}
+              bg={colors.navyLight}
+              pinColor={colors.gold}
             />
           </View>
         </ScrollView>

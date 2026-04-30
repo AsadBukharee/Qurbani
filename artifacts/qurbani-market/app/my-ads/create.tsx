@@ -18,6 +18,7 @@ import { StarryBackground } from "@/components/StarryBackground";
 import { StepperProgress } from "@/components/StepperProgress";
 import { ConfettiOverlay } from "@/components/ConfettiOverlay";
 import { MediaUploader, type MediaItem } from "@/components/MediaUploader";
+import { MapPreview } from "@/components/MapPreview";
 import { useApp } from "@/contexts/AppContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useColors } from "@/hooks/useColors";
@@ -363,6 +364,17 @@ export default function CreateAdScreen() {
                 multiline
                 numberOfLines={3}
                 style={[styles.input, styles.textArea, { backgroundColor: colors.navyLight, borderColor: colors.border, color: colors.foreground }]}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.mutedForeground }]}>Map Preview</Text>
+              <MapPreview
+                lat={location.lat}
+                lon={location.lon}
+                height={170}
+                bg={colors.navyLight}
+                pinColor={colors.gold}
               />
             </View>
           </View>
