@@ -146,7 +146,8 @@ export default function CreateAdScreen() {
         breed: details.breed || "Local",
         city: location.city,
         province: location.province,
-        address: location.address,
+        district: (location as any).district || "",
+        streetAddress: location.address,
         latitude: location.lat,
         longitude: location.lon,
         description: details.description,
@@ -158,9 +159,11 @@ export default function CreateAdScreen() {
         phone: user?.phone || "",
       };
 
+      console.log("[create-ad] submitting payload", payload);
       const res = await addListing(payload);
-      
+
       if (!res.ok) {
+        console.warn("[create-ad] submission failed:", res.error);
         Alert.alert("Submission Failed", res.error);
         return;
       }
@@ -176,7 +179,8 @@ export default function CreateAdScreen() {
         ]);
       }
     } catch (err) {
-      Alert.alert("Error", "Something went wrong.");
+      console.error("[create-ad] unexpected error", err);
+      Alert.alert("Error", (err as any)?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }

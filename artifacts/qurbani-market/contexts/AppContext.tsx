@@ -528,6 +528,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setListings((prev) => [mapped, ...prev]);
           return { ok: true as const, listing: mapped };
         } catch (err) {
+          // Surface the full server response so we can debug validation issues.
+          const ax = err as any;
+          console.error("[addListing] failed", {
+            status: ax?.response?.status,
+            url: ax?.config?.url,
+            method: ax?.config?.method,
+            requestData: ax?.config?.data,
+            responseData: ax?.response?.data,
+            message: ax?.message,
+          });
           return { ok: false as const, error: apiErrorMessage(err, "Could not publish listing.") };
         }
       }
