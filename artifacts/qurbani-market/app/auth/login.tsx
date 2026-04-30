@@ -17,6 +17,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useApp } from "@/contexts/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/contexts/ThemeContext";
+import { normalizePhone } from "@/lib/api";
 
 type Mode = "login" | "register";
 
@@ -36,7 +37,11 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const fullPhone = phone.startsWith("+") ? phone : `+92${phone}`;
+  // Normalize: drop spaces/dashes and strip any leading zero after +92,
+  // so "03417070873" or "+9203417070873" both become "+923417070873".
+  const fullPhone = normalizePhone(
+    phone.startsWith("+") ? phone : `+92${phone}`
+  );
 
   const handleSubmit = async () => {
     if (!phone || phone.length < 10) {

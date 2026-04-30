@@ -16,6 +16,39 @@ import axios, {
 
 export const API_URL = "https://qbni.fosterhartley.uk/api";
 
+/**
+ * Normalize a Pakistani phone number to E.164 (`+92XXXXXXXXXX`).
+ *
+ * Handles the common ways users type phone numbers and strips leading
+ * zeros that appear right after the country code. Backend rejects
+ * anything else.
+ *
+ * Examples:
+ *   "03001234567"       -> "+923001234567"
+ *   "3001234567"        -> "+923001234567"
+ *   "+9203001234567"    -> "+923001234567"  (drops the 0 after +92)
+ *   "+923001234567"     -> "+923001234567"
+ *   "00923001234567"    -> "+923001234567"
+ *   "  +92 (300) 123-4567 " -> "+923001234567"
+ */
+export function normalizePhone(input: string): string {
+  if (!input) return "";
+  // Strip whitespace and common separators
+  let s = input.trim().replace(/[\s()\-.]/g, "");
+  // Convert international 00 prefix to +
+  if (s.startsWith("00")) s = "+" + s.slice(2);
+  if (!s.startsWith("+")) {
+    // No country code typed — assume Pakistan, drop any leading zeros.
+    s = "+92" + s.replace(/^0+/, "");
+  } else {
+    // Has explicit country code — drop any leading zeros that
+    // appear right after it (e.g. +9203... -> +923...).
+    s = s.replace(/^(\+\d{1,3})0+/, "$1");
+  }
+  // Final sweep: keep the + and digits only
+  return "+" + s.slice(1).replace(/\D/g, "");
+}
+
 const ACCESS_KEY = "auth_access";
 const REFRESH_KEY = "auth_refresh";
 
