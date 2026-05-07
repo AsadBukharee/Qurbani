@@ -137,6 +137,19 @@ export function AnimalCard({ listing, onPress, compact }: AnimalCardProps) {
               </Text>
             </View>
           )}
+          {listing.isSellerVerified && (
+            <View
+              style={[
+                styles.verifiedBadge,
+                { backgroundColor: "#22C55Eee", top: listing.isFeatured ? 36 : 8 },
+              ]}
+            >
+              <Feather name="check-circle" size={10} color="#fff" />
+              <Text style={[styles.verifiedText, { color: "#fff" }]}>
+                Verified
+              </Text>
+            </View>
+          )}
           <TouchableOpacity
             style={[
               styles.favButton,
@@ -259,6 +272,20 @@ const styles = StyleSheet.create({
   featuredText: {
     fontSize: 10,
     fontFamily: "Inter_600SemiBold",
+  },
+  verifiedBadge: {
+    position: "absolute",
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
   },
   favButton: {
     position: "absolute",

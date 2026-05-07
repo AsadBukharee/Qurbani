@@ -78,6 +78,7 @@ export interface AnimalListing {
   publishedAt?: string | null;
   scheduledAt?: string | null;
   isFeatured?: boolean;
+  isSellerVerified?: boolean;
 }
 
 interface AppContextType {

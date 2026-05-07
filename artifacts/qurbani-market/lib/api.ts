@@ -196,6 +196,7 @@ export interface ApiAnimal {
   seller: { id: string; name: string; phone: string; role?: string; is_verified?: boolean; avatar?: string | null };
   status?: "draft" | "published" | "inactive" | "scheduled" | "deleted";
   is_featured?: boolean;
+  is_seller_verified?: boolean;
   scheduled_at?: string | null;
   published_at?: string | null;
   deleted_at?: string | null;

@@ -48,6 +48,7 @@ export function mapAnimal(a: ApiAnimal): AnimalListing {
     publishedAt: a.published_at || null,
     scheduledAt: a.scheduled_at || null,
     isFeatured: !!a.is_featured,
+    isSellerVerified: !!a.is_seller_verified,
   };
 }
 
