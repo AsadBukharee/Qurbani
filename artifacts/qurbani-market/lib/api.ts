@@ -193,11 +193,12 @@ export interface ApiAnimal {
   cover_image_index?: number;
   cover_image?: string | null;
   keywords?: string[];
-  seller: { id: string; name: string; phone: string; role?: string };
-  status?: "draft" | "published" | "inactive" | "scheduled";
+  seller: { id: string; name: string; phone: string; role?: string; is_verified?: boolean; avatar?: string | null };
+  status?: "draft" | "published" | "inactive" | "scheduled" | "deleted";
   is_featured?: boolean;
   scheduled_at?: string | null;
   published_at?: string | null;
+  deleted_at?: string | null;
   ad_fee_paid?: string;
   created_at: string;
 }
@@ -262,6 +263,36 @@ export interface ApiPlatformSettings {
   free_ad_limit: number;
   buyer_percentage: string;
   seller_percentage: string;
+  whatsapp_number: string;
+}
+
+export interface ApiSellerReview {
+  id: string;
+  buyer_id: string;
+  buyer_name: string;
+  buyer_avatar?: string | null;
+  rating: number;
+  comment: string;
+  seller_response?: string;
+  seller_responded_at?: string | null;
+  is_editable: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiSellerProfile {
+  id: string;
+  name: string;
+  avatar?: string | null;
+  is_verified: boolean;
+  role: string;
+  date_joined: string;
+  rating: {
+    average: number;
+    total: number;
+    distribution: Record<string, number>;
+  };
+  listings: ApiAnimal[];
 }
 
 // Generic "list endpoint" unwrap — supports DRF pagination shape `{results}`
@@ -500,6 +531,32 @@ export const platformSettings = {
   async get() {
     const { data } = await api.get("/settings/platform/");
     return data as ApiPlatformSettings;
+  },
+};
+
+export const sellers = {
+  /** GET /auth/sellers/{id}/ — public seller profile + listings + rating summary */
+  async getProfile(id: string) {
+    const { data } = await api.get(`/auth/sellers/${id}/`);
+    return data as ApiSellerProfile;
+  },
+};
+
+export const reviews = {
+  /** GET /reviews/seller/{sellerId}/ — list reviews with rating summary */
+  async listForSeller(sellerId: string) {
+    const { data } = await api.get(`/reviews/seller/${sellerId}/`);
+    return data as { summary: ApiSellerProfile["rating"]; results: ApiSellerReview[] };
+  },
+  /** POST /reviews/ — create or update own review */
+  async create(payload: { seller_id: string; rating: number; comment: string }) {
+    const { data } = await api.post("/reviews/", payload);
+    return data as ApiSellerReview;
+  },
+  /** PATCH /reviews/{id}/respond/ — seller adds response */
+  async respond(reviewId: string, seller_response: string) {
+    const { data } = await api.patch(`/reviews/${reviewId}/respond/`, { seller_response });
+    return data as ApiSellerReview;
   },
 };
 

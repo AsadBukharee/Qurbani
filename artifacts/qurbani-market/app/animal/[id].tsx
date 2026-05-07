@@ -386,8 +386,15 @@ export default function AnimalDetailScreen() {
           ) : null}
 
           {/* Seller */}
-          <View style={[styles.sellerCard, { backgroundColor: colors.navyLight, borderColor: colors.gold + "33" }]}>
-            <Text style={[styles.sellerHeading, { color: colors.gold }]}>Seller</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push(`/seller/${listing.seller.id}`)}
+            style={[styles.sellerCard, { backgroundColor: colors.navyLight, borderColor: colors.gold + "33" }]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={[styles.sellerHeading, { color: colors.gold }]}>Seller</Text>
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </View>
             <View style={styles.sellerRow}>
               <View style={[styles.sellerAvatar, { backgroundColor: colors.teal + "22", borderColor: colors.teal }]}>
                 <Text style={[styles.sellerAvatarText, { color: colors.teal }]}>
@@ -395,18 +402,26 @@ export default function AnimalDetailScreen() {
                 </Text>
               </View>
               <View style={styles.sellerInfo}>
-                <Text style={[styles.sellerName, { color: colors.foreground }]}>
-                  {listing.seller.name}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={[styles.sellerName, { color: colors.foreground }]}>
+                    {listing.seller.name}
+                  </Text>
+                  {listing.seller.is_verified && (
+                    <View style={[styles.verifiedBadge, { backgroundColor: colors.teal + "22", borderColor: colors.teal + "44" }]}>
+                      <Feather name="check-circle" size={12} color={colors.teal} />
+                      <Text style={[styles.verifiedText, { color: colors.teal }]}>Verified</Text>
+                    </View>
+                  )}
+                </View>
                 <View style={styles.ratingRow}>
                   <Feather name="star" size={12} color={colors.gold} />
                   <Text style={[styles.rating, { color: colors.gold }]}>
-                    {listing.seller.rating} ({listing.seller.totalSales} sales)
+                    {(listing.seller as any).rating ?? "—"} ({(listing.seller as any).totalSales ?? 0} sales)
                   </Text>
                 </View>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -737,6 +752,19 @@ const styles = StyleSheet.create({
   rating: {
     fontSize: 13,
     fontFamily: "Inter_400Regular",
+  },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
   },
   ctaBar: {
     flexDirection: "row",

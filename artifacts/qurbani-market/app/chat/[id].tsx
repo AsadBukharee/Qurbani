@@ -43,7 +43,8 @@ function formatTime(iso?: string): string {
 }
 
 export default function ChatRoomScreen() {
-  const { id, peer } = useLocalSearchParams<{ id: string; peer?: string }>();
+  const { id, peer, peerId, isVerified } = useLocalSearchParams<{ id: string; peer?: string; peerId?: string; isVerified?: string }>();
+  const params = { id, peer, peerId, isVerified }; // for backward compatibility in my previous edit if needed
   const colors = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -218,17 +219,36 @@ export default function ChatRoomScreen() {
         >
           <Feather name="arrow-left" size={18} color={colors.foreground} />
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text
-            style={[styles.peerName, { color: colors.foreground }]}
-            numberOfLines={1}
-          >
-            {peer || "Conversation"}
-          </Text>
-          <Text style={[styles.peerStatus, { color: colors.mutedForeground }]}>
-            Live · updates every few seconds
-          </Text>
+        <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <View style={{ flex: 1 }}>
+            <TouchableOpacity onPress={() => params.peerId && router.push(`/seller/${params.peerId}`)}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text
+                  style={[styles.peerName, { color: colors.foreground }]}
+                  numberOfLines={1}
+                >
+                  {params.peer || "Conversation"}
+                </Text>
+                {params.isVerified === "1" && (
+                  <Feather name="check-circle" size={14} color={colors.teal} />
+                )}
+              </View>
+            </TouchableOpacity>
+            <Text style={[styles.peerStatus, { color: colors.mutedForeground }]}>
+              Live · updates every few seconds
+            </Text>
+          </View>
         </View>
+
+        {params.peerId && params.peerId !== user?.id && (
+          <TouchableOpacity
+            onPress={() => router.push(`/seller/${params.peerId}`)}
+            style={[styles.rateBtn, { borderColor: colors.gold + "66" }]}
+          >
+            <Feather name="star" size={14} color={colors.gold} />
+            <Text style={[styles.rateBtnText, { color: colors.gold }]}>Rate</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading && messages.length === 0 ? (
@@ -394,5 +414,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+  },
+  rateBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  rateBtnText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
   },
 });

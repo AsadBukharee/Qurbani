@@ -420,6 +420,34 @@ export default function CreateAdScreen() {
               </View>
             </View>
 
+            {/* Breed & Age — Optional */}
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                  Breed <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11 }}>(optional)</Text>
+                </Text>
+                <TextInput 
+                  value={details.breed}
+                  onChangeText={(t) => setDetails({...details, breed: t})}
+                  placeholder="e.g. Teddy, Desi"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.input, { backgroundColor: colors.navyLight, borderColor: colors.border, color: colors.foreground }]}
+                />
+              </View>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={[styles.label, { color: colors.mutedForeground }]}>
+                  Age <Text style={{ color: colors.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11 }}>(optional)</Text>
+                </Text>
+                <TextInput 
+                  value={details.age}
+                  onChangeText={(t) => setDetails({...details, age: t})}
+                  placeholder="e.g. 1.5 years"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.input, { backgroundColor: colors.navyLight, borderColor: colors.border, color: colors.foreground }]}
+                />
+              </View>
+            </View>
+
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.mutedForeground }]}>Description</Text>
               <TextInput 

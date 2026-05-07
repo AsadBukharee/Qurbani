@@ -41,6 +41,7 @@ export function mapAnimal(a: ApiAnimal): AnimalListing {
       whatsapp: sellerPhone,
       rating: 5.0,
       totalSales: 0,
+      is_verified: a.seller?.is_verified ?? false,
     },
     status: a.status || "published",
     createdAt: (a.created_at ?? "").split("T")[0] || a.created_at,

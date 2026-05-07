@@ -64,11 +64,16 @@ function RootLayoutNav() {
         options={{ headerShown: false, animation: "slide_from_bottom" }}
       />
       <Stack.Screen
-        name="wallet/index"
+        name="seller/[id]"
         options={{ headerShown: false, animation: "slide_from_right" }}
       />
       <Stack.Screen
         name="seller/settings"
+        options={{ headerShown: false, animation: "slide_from_right" }}
+      />
+      {/* wallet/index — file kept, hidden from nav */}
+      <Stack.Screen
+        name="wallet/index"
         options={{ headerShown: false, animation: "slide_from_right" }}
       />
       <Stack.Screen

@@ -135,10 +135,10 @@ export default function InboxScreen() {
     );
   });
 
-  const openRoom = (roomId: string, peerName?: string) => {
+  const openRoom = (roomId: string, peerName?: string, peerId?: string, isVerified?: boolean) => {
     router.push({
       pathname: "/chat/[id]",
-      params: { id: roomId, peer: peerName ?? "" },
+      params: { id: roomId, peer: peerName ?? "", peerId: peerId ?? "", isVerified: isVerified ? "1" : "0" },
     });
   };
 
@@ -151,11 +151,21 @@ export default function InboxScreen() {
 
     return (
       <TouchableOpacity
-        onPress={() => openRoom(item.id, peer?.name)}
+        onPress={() => openRoom(item.id, peer?.name, peer?.id, peer?.is_verified)}
         activeOpacity={0.7}
         style={[styles.chatRow, { borderBottomColor: colors.border }]}
       >
-        <View
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            if (peer?.id) {
+              router.push({
+                pathname: "/seller/[id]",
+                params: { id: peer.id },
+              });
+            }
+          }}
+          activeOpacity={0.8}
           style={[
             styles.avatar,
             { backgroundColor: colors.teal + "22", borderColor: colors.teal },
@@ -164,15 +174,20 @@ export default function InboxScreen() {
           <Text style={[styles.avatarText, { color: colors.teal }]}>
             {initialsOf(peer?.name)}
           </Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.chatContent}>
           <View style={styles.chatTop}>
-            <Text
-              style={[styles.chatName, { color: colors.foreground }]}
-              numberOfLines={1}
-            >
-              {peer?.name ?? "Unknown"}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1 }}>
+              <Text
+                style={[styles.chatName, { color: colors.foreground }]}
+                numberOfLines={1}
+              >
+                {peer?.name ?? "Unknown"}
+              </Text>
+              {(peer as any)?.is_verified && (
+                <Feather name="check-circle" size={14} color={colors.teal} />
+              )}
+            </View>
             <Text
               style={[
                 styles.chatTime,

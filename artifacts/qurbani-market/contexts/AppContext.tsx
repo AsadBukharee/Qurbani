@@ -71,6 +71,7 @@ export interface AnimalListing {
     whatsapp: string;
     rating: number;
     totalSales: number;
+    is_verified?: boolean;
   };
   status?: "draft" | "published" | "inactive" | "scheduled";
   createdAt: string;
@@ -357,7 +358,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             await tokenStore.clear();
           }
         } else {
-          await refreshListings().catch(() => {});
+          await Promise.all([
+            refreshListings().catch(() => {}),
+            loadPlatformConfig().catch(() => {}),
+          ]);
         }
       }
 

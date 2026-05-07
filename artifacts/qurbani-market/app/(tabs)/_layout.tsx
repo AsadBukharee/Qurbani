@@ -1,15 +1,26 @@
 import { Feather } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, StyleSheet, View, Text } from "react-native";
+import { Platform, StyleSheet, View, Text, TouchableOpacity, Linking, Alert } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { useT, useLang } from "@/lib/i18n";
+import { useApp } from "@/contexts/AppContext";
 
 export default function TabLayout() {
   const colors = useColors();
   const t = useT();
   const lang = useLang();
+  const { user, platformConfig } = useApp();
   const tabLabelFont = lang === "ur" ? "NotoNastaliqUrdu_400Regular" : "Inter_500Medium";
+
+  const handleContactUs = () => {
+    const rawNumber = (platformConfig as any)?.whatsapp_number ?? "+923417070873";
+    const number = rawNumber.replace(/[^0-9]/g, "");
+    const name = encodeURIComponent(user?.name ?? "Guest");
+    const msg = encodeURIComponent(`Hi, I am ${user?.name ?? "a user"}. I need help.`);
+    const url = `https://wa.me/${number}?text=${msg}`;
+    Linking.openURL(url).catch(() => Alert.alert("WhatsApp not installed", "Please install WhatsApp to contact us."));
+  };
 
   return (
     <Tabs
@@ -76,25 +87,28 @@ export default function TabLayout() {
           tabBarActiveTintColor: colors.gold,
         }}
       />
+      {/* Karwan — hidden from nav but kept so deep links still work */}
       <Tabs.Screen
         name="karwan"
         options={{
-          title: t("tab.karwan"),
-          tabBarIcon: ({ color, focused }) => (
-            <Feather
-              name="truck"
-              size={22}
-              color={focused ? colors.gold : color}
-            />
-          ),
-          tabBarActiveTintColor: colors.gold,
+          href: null,
         }}
       />
-      {/* Tasbih removed from bottom nav per design — file kept so deep links still work */}
+      {/* Contact Us — opens WhatsApp, no screen needed */}
       <Tabs.Screen
         name="tasbih"
         options={{
-          href: null,
+          title: "Contact Us",
+          tabBarIcon: ({ color }) => (
+            <Feather name="message-circle" size={22} color={color} />
+          ),
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...(props as any)}
+              onPress={handleContactUs}
+              style={[props.style, { alignItems: "center", justifyContent: "center" }]}
+            />
+          ),
         }}
       />
       <Tabs.Screen
